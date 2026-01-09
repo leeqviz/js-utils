@@ -176,24 +176,89 @@ export class Stack {
    * @returns {Stack<T>} - Returns self for chaining.
    */
   sort(compareFn) {
-    // 1. Convert to Array (Result is [Bottom, ..., Top])
-    const items = this.toArray();
+    if (this.head === null || this.size === 0) return this;
 
-    // 2. Sort the array
-    // If compareFn is provided, use it. Otherwise default to JS string sort.
-    items.sort(compareFn);
-
-    // 3. Clear the current stack
-    this.clear();
-
-    // 4. Rebuild
-    // We iterate the sorted array and push.
-    // The last item in the array becomes the new Top.
-    for (const item of items) {
-      this.push(item);
-    }
+    this.head = this._mergeSort(this.head, compareFn || this._compare);
 
     return this;
+  }
+
+  /**
+   * @param {T} a
+   * @param {T} b
+   */
+  _compare(a, b) {
+    if (a < b) return -1;
+    if (a > b) return 1;
+    return 0;
+  }
+
+  /**
+   * @param {StackNode<T> | null} head
+   * @param {(first: T, second: T) => number} compare
+   * @returns {StackNode<T> | null}
+   */
+  _mergeSort(head, compare) {
+    if (!head || !head.prev) return head;
+
+    // 1. Split list into two halves
+    const middle = this._getMiddle(head);
+    const nextToMiddle = middle?.prev || null;
+
+    if (middle) middle.prev = null; // Break the link
+
+    // 2. Recursive sorting
+    const left = this._mergeSort(head, compare);
+    const right = this._mergeSort(nextToMiddle, compare);
+
+    // 3. Merge sorted halves
+    return this._sortedMerge(left, right, compare);
+  }
+
+  /**
+   * @param {StackNode<T> | null} a
+   * @param {StackNode<T> | null} b
+   * @param {(first: T, second: T) => number} compare
+   */
+  _sortedMerge(a, b, compare) {
+    if (!a) return b;
+    if (!b) return a;
+
+    let result = null;
+
+    // Note: Our 'next' is actually 'prev' in stack terminology (Top -> Bottom)
+    // We want the 'largest' (or 'smallest' depending on sort) to be at Top.
+    // Standard sort: Ascending means Smallest at Bottom, Largest at Top.
+
+    if (compare(a.data, b.data) <= 0) {
+      // a is larger/equal (for stack order) or smaller (standard)
+      // Let's assume standard sort behavior:
+      // compare(10, 5) -> Positive.
+      result = a;
+      result.prev = this._sortedMerge(a.prev, b, compare);
+    } else {
+      result = b;
+      result.prev = this._sortedMerge(a, b.prev, compare);
+    }
+
+    return result;
+  }
+
+  /**
+   * @param {StackNode<T> | null} head
+   */
+  _getMiddle(head) {
+    if (!head) return head;
+
+    /** @type {StackNode<T> | null} */
+    let slow = head;
+    let fast = head;
+
+    while (fast.prev && fast.prev.prev) {
+      slow = slow?.prev || null;
+      fast = fast.prev.prev;
+    }
+    return slow;
   }
 
   /**
@@ -516,3 +581,12 @@ numbers.sort((a, b) => {
 });
 
 console.log(numbers.pop()); // 5 (Smallest is at Top)
+
+const sorted = new Stack({ type: Number });
+
+sorted.push(10);
+sorted.push(5);
+sorted.push(15);
+sorted.sort((a, b) => b.valueOf() - a.valueOf());
+
+console.log(sorted.toString());
