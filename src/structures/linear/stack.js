@@ -108,6 +108,95 @@ export class Stack {
   }
 
   /**
+   * Checks if a specific data exists in the stack.
+   * Uses strict equality (===).
+   *
+   * Time: O(n)
+   * Space: O(1)
+   * @param {T} data
+   * @returns {boolean}
+   */
+  contains(data) {
+    let current = this.head;
+    while (current) {
+      if (current.data === data) {
+        return true;
+      }
+      current = current.prev;
+    }
+    return false;
+  }
+
+  /**
+   * Finds the first element satisfying a predicate.
+   *
+   * Time: O(n)
+   * Space: O(1)
+   * @param {(data: T) => boolean} callback - Return true to select the item.
+   * @returns {T | undefined}
+   */
+  find(callback) {
+    let current = this.head;
+    while (current) {
+      if (callback(current.data)) {
+        return current.data;
+      }
+      current = current.prev;
+    }
+    return undefined;
+  }
+
+  /**
+   * Finds all elements satisfying a predicate.
+   *
+   * Time: O(n)
+   * Space: O(n)
+   * @param {(data: T) => boolean} callback
+   * @returns {Array<T>}
+   */
+  filter(callback) {
+    const results = [];
+    let current = this.head;
+    while (current) {
+      if (callback(current.data)) {
+        results.push(current.data);
+      }
+      current = current.prev;
+    }
+    // Optional: Reverse to match insertion order (Bottom -> Top)
+    // or keep as Stack order (Top -> Bottom).
+    // Usually, search results matter by relevance (Top is most recent).
+    return results;
+  }
+
+  /**
+   * Sorts the stack in place.
+   * Rebuilds the stack so that the *last* item in the sorted order ends up at the *Top*.
+   * @param {(first: T, second: T) => number} [compareFn] - Standard JS sort comparator.
+   * @returns {Stack<T>} - Returns self for chaining.
+   */
+  sort(compareFn) {
+    // 1. Convert to Array (Result is [Bottom, ..., Top])
+    const items = this.toArray();
+
+    // 2. Sort the array
+    // If compareFn is provided, use it. Otherwise default to JS string sort.
+    items.sort(compareFn);
+
+    // 3. Clear the current stack
+    this.clear();
+
+    // 4. Rebuild
+    // We iterate the sorted array and push.
+    // The last item in the array becomes the new Top.
+    for (const item of items) {
+      this.push(item);
+    }
+
+    return this;
+  }
+
+  /**
    *
    * @description Clear the stack
    */
@@ -183,7 +272,7 @@ export class Stack {
       capacity: this.capacity === Infinity ? null : this.capacity,
       // Note: We can only serialize the type name if it's a primitive string.
       // Functions/Classes (like Date) cannot be serialized to JSON easily.
-      type: this.type === null ? null : this._getTypeName(this.type),
+      type: this.type === null ? null : this._getTypeName(this.type) || null,
     };
   }
 
@@ -275,7 +364,7 @@ export class Stack {
    * @description Helper to get a readable name for the error message
    */
   _getTypeName(type) {
-    return typeof type === "function" ? type.name : type;
+    return typeof type === "function" ? type.name : undefined;
   }
 
   /**
@@ -286,7 +375,9 @@ export class Stack {
   _isValidType(data) {
     if (this.type === null) return true;
 
-    // Case A: Primitive check (passed as string, e.g., 'number')
+    if (typeof this.type !== "function") return false;
+
+    // Case A: Primitive check
     if (this.type === Number) return typeof data === "number";
     if (this.type === String) return typeof data === "string";
     if (this.type === Boolean) return typeof data === "boolean";
@@ -295,7 +386,6 @@ export class Stack {
 
     // Case B: Class/Instance check (passed as Constructor, e.g., Date)
     if (
-      typeof this.type === "function" &&
       this.type.prototype &&
       this.type.prototype.constructor &&
       this.type.prototype.constructor === this.type &&
@@ -349,3 +439,80 @@ const restoredStack = Stack.fromJSON(savedData, { type: Date, reviver });
 console.log(restoredStack.type);
 
 console.log(restoredStack.peek()?.getFullYear()); // 2024
+
+const stackNumber = new Stack({ type: Number });
+stackNumber.push(10);
+stackNumber.push(20);
+stackNumber.push(30);
+
+console.log(stackNumber.contains(20)); // true
+console.log(stackNumber.contains(99)); // false
+
+class User {
+  /**
+   * @param {number} id
+   * @param {string} name
+   */
+  constructor(id, name) {
+    this.id = id;
+    this.name = name;
+  }
+}
+
+const users = new Stack({ type: User });
+users.push(new User(1, "Alice"));
+users.push(new User(2, "Bob"));
+users.push(new User(3, "Charlie")); // Top
+
+// Find the user with ID 2
+// The search goes: Charlie (id 3) -> Bob (id 2) ✅ Found!
+const foundUser = users.find((u) => u.id === 2);
+
+console.log(foundUser?.name); // "Bob"
+
+const evenUsers = users.filter((u) => u.id % 2 === 0);
+console.log(evenUsers); // [ User(Bob) ]
+
+const users1 = new Stack({ type: User });
+users1.push(new User(3, "Charlie"));
+users1.push(new User(1, "Alice"));
+users1.push(new User(2, "Bob"));
+
+// Sort by ID (Ascending)
+// Logic: User 1 will be at Bottom, User 3 will be at Top.
+users1.sort((u1, u2) => u1.id - u2.id);
+
+console.log(users1.peek()?.name); // "Charlie" (ID 3 is Top)
+
+const numbers = new Stack({ type: Number });
+numbers.push(10);
+numbers.push(50);
+numbers.push(5);
+
+// SCENARIO A: Ascending Sort (Smallest -> Largest)
+// Array becomes: [5, 10, 50]
+// Stack becomes: Bottom [5] -> [10] -> [50] Top
+numbers.sort((a, b) => {
+  if (a > b) return 1; // a > b, swap
+  if (a < b) return -1; // a < b, don't swap
+  return 0;
+});
+
+console.log(numbers.pop()); // 50 (Largest is at Top)
+console.log(numbers.pop()); // 10
+console.log(numbers.pop()); // 5
+
+// SCENARIO B: Descending Sort (Largest -> Smallest)
+// Array becomes: [50, 10, 5]
+// Stack becomes: Bottom [50] -> [10] -> [5] Top
+numbers.push(10);
+numbers.push(50);
+numbers.push(5); // Reset
+
+numbers.sort((a, b) => {
+  if (a > b) return 1; // a > b, swap
+  if (a < b) return -1; // a < b, don't swap
+  return 0;
+});
+
+console.log(numbers.pop()); // 5 (Smallest is at Top)

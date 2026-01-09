@@ -1,1 +1,1 @@
-import "./structures/stack.js";
+import "./structures/linear/stack.js";
