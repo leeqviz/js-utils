@@ -2,10 +2,11 @@
   "name": "@leeqviz/js-utils",
   "version": "0.0.1",
   "description": "Set of the useful functions and data structures",
-  "main": "scr/index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc"
   },
   "author": "leeqviz",
   "license": "ISC",
@@ -18,5 +19,16 @@
   ],
   "files": [
     "src/index.js"
-  ]
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/leeqviz/js-utils.git"
+  },
+  "bugs": {
+    "url": "https://github.com/leeqviz/js-utils/issues"
+  },
+  "homepage": "https://github.com/leeqviz/js-utils#readme",
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
 }
