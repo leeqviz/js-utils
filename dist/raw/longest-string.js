@@ -3,3 +3,4 @@ function longest(s1, s2) {
 }
 console.log(longest("aretheyhere", "yestheyarehere"));
 export {};
+//# sourceMappingURL=longest-string.js.map

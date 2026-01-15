@@ -13,3 +13,4 @@ console.log(narcissistic(7)); // true
 console.log(narcissistic(371)); // true
 console.log(narcissistic(122)); // false
 export {};
+//# sourceMappingURL=narcissistic.js.map

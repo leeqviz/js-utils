@@ -1,3 +1,4 @@
+//@ts-nocheck
 function debounce(callback, delay = 300) {
   let timeoutId;
   let counter = 0;

@@ -1,13 +1,13 @@
-function incrementString(strng: string) {
-  const arr = strng.match(/\d+/g) || [];
+function incrementString(str: string) {
+  const arr = str.match(/\d+/g) || [];
 
   if (arr.length === 0) {
-    return strng + "1";
+    return str + "1";
   }
 
   const lastOne = arr[arr.length - 1];
   const newNum = String(Number(lastOne) + 1).padStart(lastOne.length, "0");
-  const newStr = strng.replace(/\d+$/, "");
+  const newStr = str.replace(/\d+$/, "");
   return newStr + newNum;
 }
 

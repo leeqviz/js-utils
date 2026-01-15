@@ -1,4 +1,4 @@
-function narcissistic(value) {
+function narcissistic(value: number) {
   if (typeof value !== "number" || value < 0) return false;
   // Code me to return true or false
   const digits = value.toString().split("").map(Number);

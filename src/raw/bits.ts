@@ -1,5 +1,4 @@
 function countBits(n: number) {
-  // Program Me
   let bits = "";
   while (n > 0) {
     bits += n % 2;

@@ -529,3 +529,4 @@ const jStr = JSON.stringify(checkType);
 /** @type {Stack<User>} */
 const restoredType = Stack.fromJSON(jStr, { inferred: true });
 console.log(restoredType.type);
+//# sourceMappingURL=stack.js.map

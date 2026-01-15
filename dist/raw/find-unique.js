@@ -1,5 +1,4 @@
-function findUniq(arr) {
-    // do magic
+function findUnique(arr) {
     let a = arr[0];
     const filtered = arr.filter((item) => item === a);
     if (filtered.length === 1)
@@ -12,5 +11,6 @@ function findUniq(arr) {
     }
     return a;
 }
-console.log(findUniq([2, 1, 1, 1, 1, 1]));
+console.log(findUnique([2, 1, 1, 1, 1, 1]));
 export {};
+//# sourceMappingURL=find-unique.js.map

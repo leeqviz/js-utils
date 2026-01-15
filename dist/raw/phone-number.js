@@ -7,6 +7,7 @@ function createPhoneNumber(numbers) {
     let format = "(xxx) xxx-xxxx";
     for (var i = 0; i < numbers.length; i++) {
         console.log(format);
+        // @ts-ignore
         format = format.replace("x", numbers[i]); // Replace only the first occurrence of 'x' on each iteration
     }
     return format;
@@ -14,3 +15,4 @@ function createPhoneNumber(numbers) {
 // Example usage:
 console.log(createPhoneNumber([1, 2, 3, 4, 5, 6, 7, 8, 9, 0]));
 export {};
+//# sourceMappingURL=phone-number.js.map

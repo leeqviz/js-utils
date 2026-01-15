@@ -1,4 +1,4 @@
-function createPhoneNumber(numbers) {
+function createPhoneNumber(numbers: number[]) {
   if (
     !Array.isArray(numbers) ||
     numbers.length !== 10 ||
@@ -11,6 +11,7 @@ function createPhoneNumber(numbers) {
 
   for (var i = 0; i < numbers.length; i++) {
     console.log(format);
+    // @ts-ignore
     format = format.replace("x", numbers[i]); // Replace only the first occurrence of 'x' on each iteration
   }
 

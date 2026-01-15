@@ -1,3 +1,4 @@
+//@ts-nocheck
 function curry(fn) {
     return function curried(...args) {
         if (args.length >= fn.length) {
@@ -21,3 +22,4 @@ console.log(curriedAdd()(1)(2)(3)); // 6
 console.log(curriedAdd()()()()()(1)(2)(3)()); // Exceptional case
 console.log(curriedAdd()()()()()(1, 2, 3)()); // Exceptional case
 export {};
+//# sourceMappingURL=curry.js.map

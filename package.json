@@ -18,7 +18,8 @@
     "zero-dependency"
   ],
   "files": [
-    "src/index.js"
+    "dist",
+    "src"
   ],
   "repository": {
     "type": "git",

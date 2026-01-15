@@ -1,8 +1,4 @@
-/**
- *
- * @param {Promise<any>[]} promises
- * @returns
- */
+/* 
 function promiseAll(promises) {
   let result = new Array(promises.length); //initialize array with length same as of promises array
   let totalPromisesResolved = 0;
@@ -41,3 +37,4 @@ let promise3 = new Promise((resolve, reject) => {
 
 const promises = [promise1, promise2, promise3];
 promiseAll(promises).then((result) => console.log(result));
+ */

@@ -18,7 +18,7 @@ const original = {
 };
 
 let steps = 0;
-function cloneDeep(obj) {
+function cloneDeep<T = any>(obj: T): T {
   steps++;
   console.log("Step: ", steps);
   if (obj === null || typeof obj !== "object") {
@@ -30,12 +30,12 @@ function cloneDeep(obj) {
   if (Array.isArray(obj)) {
     console.log("Array: ");
     console.log(obj);
-    return obj.map(cloneDeep);
+    return obj.map(cloneDeep) as any as T;
   }
 
   console.log("Object: ");
   console.log(obj);
-  const clonedObj = {};
+  const clonedObj = {} as any as T;
   for (const key in obj) {
     clonedObj[key] = cloneDeep(obj[key]);
   }
@@ -44,6 +44,7 @@ function cloneDeep(obj) {
 }
 
 const copied = cloneDeep(original);
+//@ts-ignore
 original.c.d = 5;
 console.log(original);
 console.log(copied);

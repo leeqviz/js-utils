@@ -1,0 +1,1 @@
+{"version":3,"file":"longest-string.js","sourceRoot":"","sources":["../../src/raw/longest-string.ts"],"names":[],"mappings":"AAAA,SAAS,OAAO,CAAC,EAAU,EAAE,EAAU;IACrC,OAAO,CAAC,GAAG,IAAI,GAAG,CAAC,EAAE,GAAG,EAAE,CAAC,CAAC,CAAC,IAAI,EAAE,CAAC,IAAI,CAAC,EAAE,CAAC,CAAC;AAC/C,CAAC;AAED,OAAO,CAAC,GAAG,CAAC,OAAO,CAAC,aAAa,EAAE,gBAAgB,CAAC,CAAC,CAAC"}

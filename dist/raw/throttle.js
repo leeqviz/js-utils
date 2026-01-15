@@ -1,3 +1,4 @@
+//@ts-nocheck
 function throttle(callback, delay = 300) {
     let timeoutId;
     let counter = 0;
@@ -26,3 +27,4 @@ for (let i = 1; i < 100; i++) {
 }
 console.log("The loop is done!");
 export {};
+//# sourceMappingURL=throttle.js.map

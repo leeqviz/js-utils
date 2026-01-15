@@ -1,4 +1,4 @@
-function humanReadable(seconds) {
+function humanReadable(seconds: number) {
   const hours = Math.floor(seconds / 60 / 60);
   const hoursToSeconds = hours * 60 * 60;
   const restSeconds = seconds - hoursToSeconds;

@@ -1,3 +1,4 @@
+//@ts-nocheck
 function throttle(callback, delay = 300) {
   let timeoutId;
   let counter = 0;

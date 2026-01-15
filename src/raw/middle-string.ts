@@ -1,4 +1,4 @@
-function getMiddle(s) {
+function getMiddle(s: string) {
   //Code goes here!
   return s.length % 2 === 0
     ? s.substring(

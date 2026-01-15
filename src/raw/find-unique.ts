@@ -1,5 +1,4 @@
-function findUniq(arr) {
-  // do magic
+function findUnique<T = any>(arr: T[]) {
   let a = arr[0];
   const filtered = arr.filter((item) => item === a);
   if (filtered.length === 1) return a;
@@ -13,4 +12,4 @@ function findUniq(arr) {
   return a;
 }
 
-console.log(findUniq([2, 1, 1, 1, 1, 1]));
+console.log(findUnique([2, 1, 1, 1, 1, 1]));

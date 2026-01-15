@@ -8,3 +8,4 @@ console.log(getMiddle("test"));
 console.log(getMiddle("testing"));
 console.log(getMiddle("middle"));
 export {};
+//# sourceMappingURL=middle-string.js.map

@@ -1,5 +1,4 @@
 function countBits(n) {
-    // Program Me
     let bits = "";
     while (n > 0) {
         bits += n % 2;
@@ -13,3 +12,4 @@ function countBits(n) {
     return counter;
 }
 export {};
+//# sourceMappingURL=bits.js.map

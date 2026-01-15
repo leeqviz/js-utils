@@ -1,4 +1,4 @@
-function findMax(arr) {
+function findMax<T = any>(arr: T[]) {
   if (!Array.isArray(arr) || arr.length === 0) {
     return null; // Return null for invalid input
   }
@@ -13,7 +13,7 @@ function findMax(arr) {
   return max;
 }
 
-function findMin(arr) {
+function findMin<T = any>(arr: T[]) {
   if (!Array.isArray(arr) || arr.length === 0) {
     return null; // Return null for invalid input
   }
@@ -33,10 +33,12 @@ console.log(findMin([3, 5, 7, 2, 8])); // 2
 console.log(findMin([-10, -5, -3, -1])); // -10
 console.log(findMin([1, 2, null, 4, 5])); // 1
 console.log(findMin([])); // null
+// @ts-ignore
 console.log(findMin("not an array")); // null
 console.log("findMax tests:");
 console.log(findMax([3, 5, 7, 2, 8])); // 8
 console.log(findMax([-10, -5, -3, -1])); // -1
 console.log(findMax([1, 2, null, 4, 5])); // 5
 console.log(findMax([])); // null
+// @ts-ignore
 console.log(findMax("not an array")); // null

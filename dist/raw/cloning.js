@@ -39,7 +39,9 @@ function cloneDeep(obj) {
     return clonedObj;
 }
 const copied = cloneDeep(original);
+//@ts-ignore
 original.c.d = 5;
 console.log(original);
 console.log(copied);
 export {};
+//# sourceMappingURL=cloning.js.map

@@ -15,3 +15,4 @@ console.log(humanReadable(60)); // "00:01:00"
 console.log(humanReadable(86399)); // "23:59:59"
 console.log(humanReadable(359999)); // "99:59:59"
 export {};
+//# sourceMappingURL=human-readable-data.js.map
