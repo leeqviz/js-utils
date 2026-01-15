@@ -1,17 +1,28 @@
+const primitiveConstructors = new Set([
+    Number,
+    String,
+    Boolean,
+    BigInt,
+    Symbol,
+]);
+function isConstructor(value) {
+    return (typeof value === "function" &&
+        value.prototype &&
+        value.prototype.constructor &&
+        value.prototype.constructor === value &&
+        value.prototype.constructor.name);
+}
+function getFunctionName(value) {
+    return typeof value === "function" ? value.name : undefined;
+}
 /**
  * Represents a single node in the stack
  */
 class StackNode {
-    prev;
-    data;
+    prev = null; // Pointer to the node below this one
+    data; // Data stored in this node
     constructor(data, prev = null) {
-        /**
-         * Data stored in this node. Can be any type
-         */
         this.data = data;
-        /**
-         * Pointer to the node below this one
-         */
         this.prev = prev;
     }
 }
@@ -28,34 +39,33 @@ class StackNode {
 export class Stack {
     head = null;
     size = 0;
-    capacity;
-    type;
-    constructor({ array, capacity, type } = {}) {
+    capacity = Infinity;
+    type = null;
+    validate = null;
+    constructor({ array, capacity, type, validate } = {}) {
         this.head = null;
         this.size = 0;
+        if (capacity && typeof capacity !== "number")
+            throw new TypeError(`Invalid Stack Configuration: 'capacity' must be a number. Got: ${typeof capacity}`);
         /**
          * Default to Infinity if no capacity is provided
          */
-        this.capacity =
-            capacity && typeof capacity === "number" ? capacity : Infinity;
+        this.capacity = capacity ?? Infinity;
+        if (type && !primitiveConstructors.has(type) && !isConstructor(type))
+            throw new TypeError(`Invalid Stack Configuration: 'type' must be a Constructor or Primitive function. Got: ${typeof type}`);
         /**
          * Default to null if no type is provided
          */
-        this.type =
-            type &&
-                typeof type === "function" &&
-                (type === Number ||
-                    type === String ||
-                    type === Boolean ||
-                    type === BigInt ||
-                    type === Symbol ||
-                    (type.prototype &&
-                        type.prototype.constructor &&
-                        type.prototype.constructor === type &&
-                        type.prototype.constructor.name))
-                ? type
-                : null;
-        if (array && Array.isArray(array)) {
+        this.type = type ?? null;
+        if (validate && typeof validate !== "function")
+            throw new TypeError(`Invalid Stack Configuration: 'validate' must be a function. Got: ${typeof validate}`);
+        /**
+         * Default to null if no validate is provided
+         */
+        this.validate = validate ?? null;
+        if (array && !Array.isArray(array))
+            throw new TypeError(`Invalid Stack Configuration: 'array' must be an array. Got: ${typeof array}`);
+        if (array) {
             for (const item of array) {
                 this.push(item);
             }
@@ -70,7 +80,11 @@ export class Stack {
             throw new RangeError("Maximum call stack size exceeded");
         // Check correct type
         if (this.type && !this._isValidType(data))
-            throw new TypeError(`Expected ${this._getTypeName(this.type)} but got ${typeof data}`);
+            throw new TypeError(`Expected ${getFunctionName(this.type)} but got ${typeof data}`);
+        // We run this second because it might involve complex logic.
+        if (this.validate && !this.validate(data)) {
+            throw new Error("Validation Failed: Value rejected by custom validation rule.");
+        }
         // Create a new node.
         // If stack is not empty, point new node to the current head (place our node at the head and point to previous node)
         // Update the head to be the new node
@@ -145,7 +159,11 @@ export class Stack {
     contains(data) {
         // Check correct type
         if (this.type && !this._isValidType(data))
-            throw new TypeError(`Expected ${this._getTypeName(this.type)} but got ${typeof data}`);
+            throw new TypeError(`Expected ${getFunctionName(this.type)} but got ${typeof data}`);
+        // We run this second because it might involve complex logic.
+        if (this.validate && !this.validate(data)) {
+            throw new Error("Validation Failed: Value rejected by custom validation rule.");
+        }
         let current = this.head;
         while (current) {
             if (current.data === data) {
@@ -205,7 +223,7 @@ export class Stack {
                 return 1;
             return 0;
         }
-        this.head = this._mergeSort(this.head, compareFn || _compare);
+        this.head = this._mergeSort(this.head, compareFn ?? _compare);
         return this;
     }
     _mergeSort(head, compare) {
@@ -213,7 +231,7 @@ export class Stack {
             return head;
         // 1. Split list into two halves
         const middle = this._getMiddle(head);
-        const nextToMiddle = middle?.prev || null;
+        const nextToMiddle = middle?.prev ?? null;
         if (middle)
             middle.prev = null; // Break the link
         // 2. Recursive sorting
@@ -250,7 +268,7 @@ export class Stack {
         let slow = head;
         let fast = head;
         while (fast.prev && fast.prev.prev) {
-            slow = slow?.prev || null;
+            slow = slow?.prev ?? null;
             fast = fast.prev.prev;
         }
         return slow;
@@ -295,7 +313,7 @@ export class Stack {
             capacity: this.capacity === Infinity ? null : this.capacity,
             // Note: We can only serialize the type name if it's a primitive string.
             // Functions/Classes (like Date) cannot be serialized to JSON easily.
-            type: this.type === null ? null : this._getTypeName(this.type) || null,
+            type: this.type === null ? null : getFunctionName(this.type) ?? null,
         };
     }
     /**
@@ -305,12 +323,20 @@ export class Stack {
      * Use an 'inferred' option as a last resort to let the function try to infer the type.
      *
      */
-    static fromJSON(str, { type, inferred, reviver } = {}) {
+    static fromJSON(str, { type, inferred, reviver, validate } = {}) {
+        if (type && !primitiveConstructors.has(type) && !isConstructor(type))
+            throw new TypeError(`Invalid Stack Configuration: 'type' must be a Constructor or Primitive function. Got: ${typeof type}`);
+        if (inferred && typeof inferred !== "boolean")
+            throw new TypeError(`Invalid Stack Configuration: 'inferred' must be a boolean. Got: ${typeof type}`);
+        if (reviver && typeof reviver !== "function")
+            throw new TypeError(`Invalid Stack Configuration: 'reviver' must be a function. Got: ${typeof type}`);
+        if (validate && typeof validate !== "function")
+            throw new TypeError(`Invalid Stack Configuration: 'validate' must be a function. Got: ${typeof type}`);
         const data = JSON.parse(str);
         // Resolve the Type
         // If the user passed a type manually, use it.
         // If not, look at the string in JSON and try to convert it.
-        let resolvedType = type || null;
+        let resolvedType = type ?? null;
         if (inferred && !resolvedType && data.type) {
             if (data.type === "Number") {
                 resolvedType = Number;
@@ -343,8 +369,9 @@ export class Stack {
         }
         // Re-initialize the stack with saved config
         const restored = new Stack({
-            capacity: data.capacity || Infinity,
-            type: resolvedType || undefined,
+            capacity: data.capacity ?? undefined,
+            type: resolvedType ?? undefined,
+            validate: validate ?? undefined,
         });
         // Rebuild the stack
         // The array is [Top, Next, ... Bottom].
@@ -364,14 +391,8 @@ export class Stack {
                         value = resolvedType(value);
                     }
                     else {
-                        if (resolvedType.prototype &&
-                            resolvedType.prototype.constructor &&
-                            resolvedType.prototype.constructor === type &&
-                            resolvedType.prototype.constructor.name) {
+                        if (isConstructor(resolvedType)) {
                             value = new resolvedType(value);
-                        }
-                        else {
-                            value = resolvedType(value);
                         }
                     }
                 }
@@ -381,22 +402,15 @@ export class Stack {
         return restored;
     }
     /**
+     * Checks if the type of the data matches the type of the stack.
      *
-     * Helper to get a readable name for the error message
-     */
-    _getTypeName(type) {
-        return typeof type === "function" ? type.name : undefined;
-    }
-    /**
-     *
-     * @returns
+     * Allow primitives and Classes/Instances
      */
     _isValidType(data) {
+        // Case A: No type
         if (this.type === null)
             return true;
-        if (typeof this.type !== "function")
-            return false;
-        // Case A: Primitive check
+        // Case B: Primitive check
         if (this.type === Number)
             return typeof data === "number";
         if (this.type === String)
@@ -407,14 +421,10 @@ export class Stack {
             return typeof data === "bigint";
         if (this.type === Symbol)
             return typeof data === "symbol";
-        // Case B: Class/Instance check (passed as Constructor, e.g., Date)
-        if (this.type.prototype &&
-            this.type.prototype.constructor &&
-            this.type.prototype.constructor === this.type &&
-            this.type.prototype.constructor.name) {
+        // Case C: Class/Instance check (passed as Constructor, e.g., Date)
+        if (isConstructor(this.type))
             return data instanceof this.type;
-        }
-        return true;
+        return false;
     }
 }
 // Usage
@@ -516,17 +526,15 @@ sorted.push(5);
 sorted.push(15);
 sorted.sort((a, b) => b.valueOf() - a.valueOf());
 console.log(sorted.toString());
-const testType = () => 3;
-const testStack = new Stack({ type: testType, capacity: 3 });
+const testStack = new Stack({ capacity: 3 });
 testStack.push(4);
 testStack.push(4);
-testStack.push(4);
-testStack.pop();
-testStack.clear().push(1);
+testStack.push("4erjre");
+/* testStack.pop();
+testStack.clear().push(1); */
 console.log(testStack.toString());
 const checkType = new Stack({ type: User, capacity: 3 });
 const jStr = JSON.stringify(checkType);
-/** @type {Stack<User>} */
 const restoredType = Stack.fromJSON(jStr, { inferred: true });
-console.log(restoredType.type);
+console.dir(restoredType.type);
 //# sourceMappingURL=stack.js.map

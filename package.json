@@ -6,7 +6,8 @@
   "types": "dist/index.d.ts",
   "type": "module",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "start": "tsc && node dist/index.js"
   },
   "author": "leeqviz",
   "license": "ISC",

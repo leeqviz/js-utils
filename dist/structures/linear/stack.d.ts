@@ -1,13 +1,26 @@
+type PrimitiveConstructor = NumberConstructor | StringConstructor | BooleanConstructor | BigIntConstructor | SymbolConstructor;
+type GenericConstructor<T = any> = {
+    new (...args: any[]): T;
+};
+type ValidateFunction<T = any> = (value: T) => boolean;
+type StackType<T = any> = PrimitiveConstructor | GenericConstructor<T>;
+interface StackOptions<T = any> {
+    array?: T[];
+    capacity?: number;
+    type?: StackType<T>;
+    validate?: ValidateFunction;
+}
 interface SerializedStack<T = any> {
     array: T[];
     capacity: number | null;
     type: string | null;
 }
-type StackType<T = any> = {
-    new (...args: any[]): T;
-} | {
-    (...args: any[]): T;
-} | NumberConstructor | StringConstructor | BooleanConstructor | BigIntConstructor | SymbolConstructor;
+interface FromJSONOptions<T = any> {
+    type?: StackType<T>;
+    inferred?: boolean;
+    reviver?: (...args: any[]) => any;
+    validate?: ValidateFunction;
+}
 /**
  * Represents a single node in the stack
  */
@@ -15,16 +28,6 @@ declare class StackNode<T = any> {
     prev: StackNode<T> | null;
     data: T;
     constructor(data: T, prev?: StackNode<T> | null);
-}
-interface StackOptions<T = any> {
-    array?: T[] | null;
-    capacity?: number | null;
-    type?: StackType<T> | null;
-}
-interface FromJSONOptions<T = any> {
-    type?: StackType<T> | null;
-    inferred?: boolean;
-    reviver?: (...args: any[]) => any;
 }
 /**
  * A LIFO (Last-In, First-Out) data structure implemented using a Linked List.
@@ -39,9 +42,10 @@ interface FromJSONOptions<T = any> {
 export declare class Stack<T = any> {
     head: StackNode<T> | null;
     size: number;
-    capacity: number;
-    type: StackType<T> | null;
-    constructor({ array, capacity, type }?: StackOptions<T>);
+    readonly capacity: number;
+    readonly type: StackType<T> | null;
+    readonly validate: ValidateFunction | null;
+    constructor({ array, capacity, type, validate }?: StackOptions<T>);
     /**
      * Add data to the head
      */
@@ -103,9 +107,9 @@ export declare class Stack<T = any> {
      * Rebuilds the stack so that the *last* item in the sorted order ends up at the *Top*.
      */
     sort(compareFn?: (first: T, second: T) => number): this;
-    _mergeSort(head: StackNode<T> | null, compare: (first: T, second: T) => number): StackNode<T> | null;
-    _sortedMerge(a: StackNode<T> | null, b: StackNode<T> | null, compare: (first: T, second: T) => number): StackNode<T> | null;
-    _getMiddle(head: StackNode<T> | null): StackNode<T> | null;
+    private _mergeSort;
+    private _sortedMerge;
+    private _getMiddle;
     toString(): string;
     /**
      * Converts the Linked List to a standard Array
@@ -125,16 +129,12 @@ export declare class Stack<T = any> {
      * Use an 'inferred' option as a last resort to let the function try to infer the type.
      *
      */
-    static fromJSON<U = any>(str: string, { type, inferred, reviver }?: FromJSONOptions<U>): Stack<U>;
+    static fromJSON<U = any>(str: string, { type, inferred, reviver, validate }?: FromJSONOptions<U>): Stack<U>;
     /**
+     * Checks if the type of the data matches the type of the stack.
      *
-     * Helper to get a readable name for the error message
+     * Allow primitives and Classes/Instances
      */
-    _getTypeName(type: StackType<T>): string | undefined;
-    /**
-     *
-     * @returns
-     */
-    _isValidType(data: T): boolean;
+    private _isValidType;
 }
 export {};
