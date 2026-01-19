@@ -42,31 +42,33 @@ export class Stack {
     capacity = Infinity;
     type = null;
     validate = null;
-    constructor({ array, capacity, type, validate } = {}) {
+    constructor(options = {}) {
         this.head = null;
         this.size = 0;
-        if (capacity && typeof capacity !== "number")
-            throw new TypeError(`Invalid Stack Configuration: 'capacity' must be a number. Got: ${typeof capacity}`);
+        if (options.capacity && typeof options.capacity !== "number")
+            throw new TypeError(`Invalid Stack Configuration: 'capacity' must be a number. Got: ${typeof options.capacity}`);
         /**
          * Default to Infinity if no capacity is provided
          */
-        this.capacity = capacity ?? Infinity;
-        if (type && !primitiveConstructors.has(type) && !isConstructor(type))
-            throw new TypeError(`Invalid Stack Configuration: 'type' must be a Constructor or Primitive function. Got: ${typeof type}`);
+        this.capacity = options.capacity ?? Infinity;
+        if (options.type &&
+            !primitiveConstructors.has(options.type) &&
+            !isConstructor(options.type))
+            throw new TypeError(`Invalid Stack Configuration: 'type' must be a Constructor or Primitive function. Got: ${typeof options.type}`);
         /**
          * Default to null if no type is provided
          */
-        this.type = type ?? null;
-        if (validate && typeof validate !== "function")
-            throw new TypeError(`Invalid Stack Configuration: 'validate' must be a function. Got: ${typeof validate}`);
+        this.type = options.type ?? null;
+        if (options.validate && typeof options.validate !== "function")
+            throw new TypeError(`Invalid Stack Configuration: 'validate' must be a function. Got: ${typeof options.validate}`);
         /**
          * Default to null if no validate is provided
          */
-        this.validate = validate ?? null;
-        if (array && !Array.isArray(array))
-            throw new TypeError(`Invalid Stack Configuration: 'array' must be an array. Got: ${typeof array}`);
-        if (array) {
-            for (const item of array) {
+        this.validate = options.validate ?? null;
+        if (options.array && !Array.isArray(options.array))
+            throw new TypeError(`Invalid Stack Configuration: 'array' must be an array. Got: ${typeof options.array}`);
+        if (options.array) {
+            for (const item of options.array) {
                 this.push(item);
             }
         }
@@ -213,7 +215,7 @@ export class Stack {
      * Sorts the stack in place.
      * Rebuilds the stack so that the *last* item in the sorted order ends up at the *Top*.
      */
-    sort(compareFn) {
+    sort(compare) {
         if (this.head === null || this.size === 0)
             return this;
         function _compare(a, b) {
@@ -223,7 +225,7 @@ export class Stack {
                 return 1;
             return 0;
         }
-        this.head = this._mergeSort(this.head, compareFn ?? _compare);
+        this.head = this._mergeSort(this.head, compare ?? _compare);
         return this;
     }
     _mergeSort(head, compare) {
@@ -313,7 +315,7 @@ export class Stack {
             capacity: this.capacity === Infinity ? null : this.capacity,
             // Note: We can only serialize the type name if it's a primitive string.
             // Functions/Classes (like Date) cannot be serialized to JSON easily.
-            type: this.type === null ? null : getFunctionName(this.type) ?? null,
+            type: this.type === null ? null : (getFunctionName(this.type) ?? null),
         };
     }
     /**
@@ -323,21 +325,23 @@ export class Stack {
      * Use an 'inferred' option as a last resort to let the function try to infer the type.
      *
      */
-    static fromJSON(str, { type, inferred, reviver, validate } = {}) {
-        if (type && !primitiveConstructors.has(type) && !isConstructor(type))
-            throw new TypeError(`Invalid Stack Configuration: 'type' must be a Constructor or Primitive function. Got: ${typeof type}`);
-        if (inferred && typeof inferred !== "boolean")
-            throw new TypeError(`Invalid Stack Configuration: 'inferred' must be a boolean. Got: ${typeof type}`);
-        if (reviver && typeof reviver !== "function")
-            throw new TypeError(`Invalid Stack Configuration: 'reviver' must be a function. Got: ${typeof type}`);
-        if (validate && typeof validate !== "function")
-            throw new TypeError(`Invalid Stack Configuration: 'validate' must be a function. Got: ${typeof type}`);
-        const data = JSON.parse(str);
+    static fromJSON(text, options = {}) {
+        if (options.type &&
+            !primitiveConstructors.has(options.type) &&
+            !isConstructor(options.type))
+            throw new TypeError(`Invalid Stack Configuration: 'type' must be a Constructor or Primitive function. Got: ${typeof options.type}`);
+        if (options.inferred && typeof options.inferred !== "boolean")
+            throw new TypeError(`Invalid Stack Configuration: 'inferred' must be a boolean. Got: ${typeof options.inferred}`);
+        if (options.reviver && typeof options.reviver !== "function")
+            throw new TypeError(`Invalid Stack Configuration: 'reviver' must be a function. Got: ${typeof options.reviver}`);
+        if (options.validate && typeof options.validate !== "function")
+            throw new TypeError(`Invalid Stack Configuration: 'validate' must be a function. Got: ${typeof options.validate}`);
+        const data = JSON.parse(text);
         // Resolve the Type
         // If the user passed a type manually, use it.
         // If not, look at the string in JSON and try to convert it.
-        let resolvedType = type ?? null;
-        if (inferred && !resolvedType && data.type) {
+        let resolvedType = options.type ?? null;
+        if (!resolvedType && options.inferred && data.type) {
             if (data.type === "Number") {
                 resolvedType = Number;
             }
@@ -371,17 +375,18 @@ export class Stack {
         const restored = new Stack({
             capacity: data.capacity ?? undefined,
             type: resolvedType ?? undefined,
-            validate: validate ?? undefined,
+            validate: options.validate ?? undefined,
         });
         // Rebuild the stack
         // The array is [Top, Next, ... Bottom].
         // To restore, we must push Bottom first!
         // So we iterate the array in REVERSE.
         if (Array.isArray(data.array)) {
-            for (let i = data.array.length - 1; i >= 0; i--) {
-                let value = data.array[i];
-                if (reviver)
-                    value = reviver(value);
+            const context = data.array;
+            for (let i = context.length - 1; i >= 0; i--) {
+                let value = context[i];
+                if (options.reviver)
+                    value = options.reviver.call(context, String(i), value);
                 else if (typeof resolvedType === "function") {
                     if (resolvedType === BigInt ||
                         resolvedType === Symbol ||
@@ -453,8 +458,15 @@ myStack.push(new Date("2024-01-01"));
 // 3. Save it (Serialize)
 const savedData = JSON.stringify(myStack); // This will call toJSON()
 // 4. Load it back (Deserialize with Reviver)
-const reviver = (val) => new Date(val);
-const restoredStack = Stack.fromJSON(savedData, { type: Date, reviver });
+const restoredStack = Stack.fromJSON(savedData, {
+    type: Date,
+    reviver: function (key, val) {
+        if (key === "0" && Array.isArray(this)) {
+            console.log(this[0]);
+        }
+        return new Date(val);
+    },
+});
 console.log(restoredStack.type);
 console.log(restoredStack.peek()?.getFullYear()); // 2024
 const stackNumber = new Stack({ type: Number });

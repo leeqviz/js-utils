@@ -1,30 +1,30 @@
 type PrimitiveConstructor = NumberConstructor | StringConstructor | BooleanConstructor | BigIntConstructor | SymbolConstructor;
-type GenericConstructor<T = any> = {
+type GenericConstructor<T = unknown> = {
     new (...args: any[]): T;
 };
-type ValidateFunction<T = any> = (value: T) => boolean;
-type StackType<T = any> = PrimitiveConstructor | GenericConstructor<T>;
-interface StackOptions<T = any> {
+type ValidateFunction<T = unknown> = (value: T) => boolean;
+type StackType<T = unknown> = PrimitiveConstructor | GenericConstructor<T>;
+interface StackOptions<T = unknown> {
     array?: T[];
     capacity?: number;
     type?: StackType<T>;
     validate?: ValidateFunction;
 }
-interface SerializedStack<T = any> {
-    array: T[];
+interface SerializedStack<T = unknown> {
+    array: T[] | null;
     capacity: number | null;
     type: string | null;
 }
-interface FromJSONOptions<T = any> {
-    type?: StackType<T>;
+interface FromJSONOptions<T = unknown> {
     inferred?: boolean;
-    reviver?: (...args: any[]) => any;
+    reviver?: (this: any, key: string, value: any) => any;
+    type?: StackType<T>;
     validate?: ValidateFunction;
 }
 /**
  * Represents a single node in the stack
  */
-declare class StackNode<T = any> {
+declare class StackNode<T = unknown> {
     prev: StackNode<T> | null;
     data: T;
     constructor(data: T, prev?: StackNode<T> | null);
@@ -39,13 +39,13 @@ declare class StackNode<T = any> {
  * - Merge Sort algorithm for sorting
  *
  */
-export declare class Stack<T = any> {
+export declare class Stack<T = unknown> {
     head: StackNode<T> | null;
     size: number;
     readonly capacity: number;
     readonly type: StackType<T> | null;
     readonly validate: ValidateFunction | null;
-    constructor({ array, capacity, type, validate }?: StackOptions<T>);
+    constructor(options?: StackOptions<T>);
     /**
      * Add data to the head
      */
@@ -106,7 +106,7 @@ export declare class Stack<T = any> {
      * Sorts the stack in place.
      * Rebuilds the stack so that the *last* item in the sorted order ends up at the *Top*.
      */
-    sort(compareFn?: (first: T, second: T) => number): this;
+    sort(compare?: (first: T, second: T) => number): this;
     private _mergeSort;
     private _sortedMerge;
     private _getMiddle;
@@ -129,7 +129,7 @@ export declare class Stack<T = any> {
      * Use an 'inferred' option as a last resort to let the function try to infer the type.
      *
      */
-    static fromJSON<U = any>(str: string, { type, inferred, reviver, validate }?: FromJSONOptions<U>): Stack<U>;
+    static fromJSON<U = unknown>(text: string, options?: FromJSONOptions<U>): Stack<U>;
     /**
      * Checks if the type of the data matches the type of the stack.
      *
