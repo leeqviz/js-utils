@@ -18,45 +18,95 @@ function getFunctionName(value) {
 /**
  * Checks if the data can be serialized to JSON.
  * You can use it to validate the data before serializing it.
+ *
+ * Features:
+ * - Checks for circular references
+ * - Checks for data loss (Functions, Symbols, Undefined)
+ * - Checks for data mutation (NaN, Infinity, Map, Set, WeakMap, WeakSet, Error, RegExp)
+ * - Checks for data crash (BigInt)
+ * - Checks for primitives (Number, String, Boolean, Null)
+ * - Checks for custom toJSON() method
+ * - Checks for data that can throw an Error
+ * - Checks for proxies objects
+ * - Checks for restorable data
  */
-function isSerializable(data) {
-    if (data === undefined ||
-        typeof data === "function" ||
-        typeof data === "symbol" ||
-        typeof data === "bigint")
-        return false;
-    function _hasRef(value, seen = new WeakSet()) {
-        if (value === null || typeof value !== "object")
+function isSerializable(data, options = {}) {
+    const { isRestorable = false, maxDepth = undefined } = options;
+    if (maxDepth &&
+        (typeof maxDepth !== "number" ||
+            Number.isNaN(maxDepth) ||
+            !Number.isInteger(maxDepth) ||
+            maxDepth < 0))
+        throw new TypeError(`Invalid Stack Configuration: 'maxDepth' must be a positive integer number. Got: ${typeof maxDepth}`);
+    function _validateRecursively(value, seen = new WeakSet(), currentDepth = 0) {
+        if (currentDepth > (maxDepth ?? Infinity))
             return false;
-        if (seen.has(value))
-            return true;
-        seen.add(value);
-        if (Array.isArray(value)) {
-            for (const item of value) {
-                if (_hasRef(item, seen))
-                    return true;
-            }
+        // Check for possible data loss (mutation to 'null' or '{}'): undefined, function, symbol, NaN, +-Infinity, and not serializable instances
+        if (isRestorable) {
+            if (value === undefined ||
+                typeof value === "symbol" ||
+                typeof value === "function" ||
+                value instanceof Error ||
+                value instanceof RegExp ||
+                value instanceof Map ||
+                value instanceof Set ||
+                value instanceof WeakMap ||
+                value instanceof WeakSet ||
+                !Number.isFinite(value))
+                return false;
         }
-        else {
-            for (const key in value) {
-                if (Object.hasOwn(value, key)) {
-                    if (_hasRef(value[key], seen))
-                        return true;
+        // Check for possible data crash: BigInt
+        if (typeof value === "bigint")
+            return false;
+        // Check for safe primitive
+        if (value === null || typeof value !== "object")
+            return true;
+        if (isRestorable) {
+            // We only allow Plain Objects and Arrays.
+            // Anything else (Date, RegExp, Custom Class) loses its prototype.
+            const proto = Object.getPrototypeOf(value);
+            if (!Array.isArray(value) && proto !== Object.prototype && proto !== null)
+                return false;
+        }
+        // Check for circular references
+        if (seen.has(value))
+            return false;
+        // Add the current value to the seen set
+        seen.add(value);
+        // Handle the tree of objects and arrays
+        try {
+            // Check for custom .toJSON()
+            if ("toJSON" in value && typeof value.toJSON === "function") {
+                // Recurse on the output of toJSON, not the original object
+                return _validateRecursively(value.toJSON(), seen, currentDepth + 1);
+            }
+            if (Array.isArray(value)) {
+                for (const item of value) {
+                    // Accessing each item in the array
+                    if (!_validateRecursively(item, seen, currentDepth + 1))
+                        return false;
+                }
+            }
+            else {
+                for (const key in value) {
+                    if (Object.hasOwn(value, key)) {
+                        // Accessing a property or method in the object
+                        if (!_validateRecursively(value[key], seen, currentDepth + 1))
+                            return false;
+                    }
                 }
             }
         }
-        seen.delete(value);
-        return false;
-    }
-    if (_hasRef(data))
-        return false;
-    try {
-        JSON.stringify(data);
+        catch {
+            return false;
+        }
+        finally {
+            // Remove from set so we can use the same object in a different valid branch
+            seen.delete(value);
+        }
         return true;
     }
-    catch {
-        return false;
-    }
+    return _validateRecursively(data);
 }
 /**
  * Represents a single node in the stack
@@ -89,8 +139,12 @@ export class Stack {
         this.head = null;
         this.size = 0;
         const { limit, type, array, validate } = options;
-        if (limit && typeof limit !== "number")
-            throw new TypeError(`Invalid Stack Configuration: 'limit' must be a number. Got: ${typeof limit}`);
+        if (limit &&
+            (typeof limit !== "number" ||
+                Number.isNaN(limit) ||
+                !Number.isInteger(limit) ||
+                limit < 0))
+            throw new TypeError(`Invalid Stack Configuration: 'limit' must be a positive integer number. Got: ${typeof limit}`);
         this.limit = limit ?? Infinity;
         if (type && !primitiveConstructors.has(type) && !isConstructor(type))
             throw new TypeError(`Invalid Stack Configuration: 'type' must be a constructor or primitive function. Got: ${typeof type}`);
@@ -575,4 +629,15 @@ const checkType = new Stack({ type: User, limit: 3 });
 const jStr = JSON.stringify(checkType);
 const restoredType = Stack.fromJSON(jStr, { inferred: true });
 console.dir(restoredType.type);
+const data = {
+    name: "Alice",
+    greet: () => console.log("Hi"), // Function
+    id: Symbol("id"), // Symbol
+    score: undefined, // Undefined
+};
+const arr = ["Alice", () => console.log("Hi"), Symbol("id"), undefined];
+console.log(isSerializable(data, { isRestorable: true }));
+console.log(JSON.stringify(data));
+console.log(isSerializable(arr, { isRestorable: true }));
+console.log(JSON.stringify(arr));
 //# sourceMappingURL=stack.js.map
