@@ -16,6 +16,49 @@ function getFunctionName(value) {
     return typeof value === "function" ? value.name : undefined;
 }
 /**
+ * Checks if the data can be serialized to JSON.
+ * You can use it to validate the data before serializing it.
+ */
+function isSerializable(data) {
+    if (data === undefined ||
+        typeof data === "function" ||
+        typeof data === "symbol" ||
+        typeof data === "bigint")
+        return false;
+    function _hasRef(value, seen = new WeakSet()) {
+        if (value === null || typeof value !== "object")
+            return false;
+        if (seen.has(value))
+            return true;
+        seen.add(value);
+        if (Array.isArray(value)) {
+            for (const item of value) {
+                if (_hasRef(item, seen))
+                    return true;
+            }
+        }
+        else {
+            for (const key in value) {
+                if (Object.hasOwn(value, key)) {
+                    if (_hasRef(value[key], seen))
+                        return true;
+                }
+            }
+        }
+        seen.delete(value);
+        return false;
+    }
+    if (_hasRef(data))
+        return false;
+    try {
+        JSON.stringify(data);
+        return true;
+    }
+    catch {
+        return false;
+    }
+}
+/**
  * Represents a single node in the stack
  */
 class StackNode {
@@ -39,36 +82,26 @@ class StackNode {
 export class Stack {
     head = null;
     size = 0;
-    capacity = Infinity;
+    limit = Infinity;
     type = null;
     validate = null;
     constructor(options = {}) {
         this.head = null;
         this.size = 0;
-        if (options.capacity && typeof options.capacity !== "number")
-            throw new TypeError(`Invalid Stack Configuration: 'capacity' must be a number. Got: ${typeof options.capacity}`);
-        /**
-         * Default to Infinity if no capacity is provided
-         */
-        this.capacity = options.capacity ?? Infinity;
-        if (options.type &&
-            !primitiveConstructors.has(options.type) &&
-            !isConstructor(options.type))
-            throw new TypeError(`Invalid Stack Configuration: 'type' must be a Constructor or Primitive function. Got: ${typeof options.type}`);
-        /**
-         * Default to null if no type is provided
-         */
-        this.type = options.type ?? null;
-        if (options.validate && typeof options.validate !== "function")
-            throw new TypeError(`Invalid Stack Configuration: 'validate' must be a function. Got: ${typeof options.validate}`);
-        /**
-         * Default to null if no validate is provided
-         */
-        this.validate = options.validate ?? null;
-        if (options.array && !Array.isArray(options.array))
-            throw new TypeError(`Invalid Stack Configuration: 'array' must be an array. Got: ${typeof options.array}`);
-        if (options.array) {
-            for (const item of options.array) {
+        const { limit, type, array, validate } = options;
+        if (limit && typeof limit !== "number")
+            throw new TypeError(`Invalid Stack Configuration: 'limit' must be a number. Got: ${typeof limit}`);
+        this.limit = limit ?? Infinity;
+        if (type && !primitiveConstructors.has(type) && !isConstructor(type))
+            throw new TypeError(`Invalid Stack Configuration: 'type' must be a constructor or primitive function. Got: ${typeof type}`);
+        this.type = type ?? null;
+        if (validate && typeof validate !== "function")
+            throw new TypeError(`Invalid Stack Configuration: 'validate' must be a function. Got: ${typeof validate}`);
+        this.validate = validate ?? null;
+        if (array && !Array.isArray(array))
+            throw new TypeError(`Invalid Stack Configuration: 'array' must be an array. Got: ${typeof array}`);
+        if (array && Array.isArray(array)) {
+            for (const item of array) {
                 this.push(item);
             }
         }
@@ -78,7 +111,7 @@ export class Stack {
      */
     push(data) {
         // Check if stack is full
-        if (this.size >= this.capacity)
+        if (this.size >= this.limit)
             throw new RangeError("Maximum call stack size exceeded");
         // Check correct type
         if (this.type && !this._isValidType(data))
@@ -96,7 +129,6 @@ export class Stack {
         return this;
     }
     /**
-     *
      * Remove data from the head
      */
     pop() {
@@ -113,7 +145,6 @@ export class Stack {
         return head.data;
     }
     /**
-     *
      * View the head
      */
     peek() {
@@ -122,7 +153,6 @@ export class Stack {
         return this.head.data;
     }
     /**
-     *
      * Clear the stack
      */
     clear() {
@@ -131,32 +161,29 @@ export class Stack {
         return this;
     }
     /**
-     *
      * Get the size of the stack
      */
     getSize() {
         return this.size;
     }
     /**
-     *
      * Check if the stack is empty
      */
     isEmpty() {
         return this.head === null || this.size === 0;
     }
     /**
-     *
      * Check if the stack is full
      */
     isFull() {
-        return this.size >= this.capacity;
+        return this.size >= this.limit;
     }
     /**
      * Checks if a specific data exists in the stack.
      * Uses strict equality (===).
      *
-     * Time: O(n)
-     * Space: O(1)
+     * Time: O(n);
+     * Space: O(1);
      */
     contains(data) {
         // Check correct type
@@ -178,8 +205,8 @@ export class Stack {
     /**
      * Finds the first element satisfying a predicate.
      *
-     * Time: O(n)
-     * Space: O(1)
+     * Time: O(n);
+     * Space: O(1);
      */
     find(callback) {
         let current = this.head;
@@ -194,8 +221,8 @@ export class Stack {
     /**
      * Finds all elements satisfying a predicate.
      *
-     * Time: O(n)
-     * Space: O(n)
+     * Time: O(n);
+     * Space: O(n);
      */
     filter(callback) {
         const results = [];
@@ -218,10 +245,10 @@ export class Stack {
     sort(compare) {
         if (this.head === null || this.size === 0)
             return this;
-        function _compare(a, b) {
-            if (a < b)
+        function _compare(first, second) {
+            if (first < second)
                 return -1;
-            if (a > b)
+            if (first > second)
                 return 1;
             return 0;
         }
@@ -242,25 +269,25 @@ export class Stack {
         // 3. Merge sorted halves
         return this._sortedMerge(left, right, compare);
     }
-    _sortedMerge(a, b, compare) {
-        if (!a)
-            return b;
-        if (!b)
-            return a;
+    _sortedMerge(left, right, compare) {
+        if (!left)
+            return right;
+        if (!right)
+            return left;
         let result = null;
         // Note: Our 'next' is actually 'prev' in stack terminology (Top -> Bottom)
         // We want the 'largest' (or 'smallest' depending on sort) to be at Top.
         // Standard sort: Ascending means Smallest at Bottom, Largest at Top.
-        if (compare(a.data, b.data) <= 0) {
-            // a is larger/equal (for stack order) or smaller (standard)
+        if (compare(left.data, right.data) <= 0) {
+            // left is larger/equal (for stack order) or smaller (standard)
             // Let's assume standard sort behavior:
             // compare(10, 5) -> Positive.
-            result = a;
-            result.prev = this._sortedMerge(a.prev, b, compare);
+            result = left;
+            result.prev = this._sortedMerge(left.prev, right, compare);
         }
         else {
-            result = b;
-            result.prev = this._sortedMerge(a, b.prev, compare);
+            result = right;
+            result.prev = this._sortedMerge(left, right.prev, compare);
         }
         return result;
     }
@@ -299,23 +326,21 @@ export class Stack {
         return result;
     }
     /**
-     * Converts the stack to a JSON string.
+     * Prepares the stack instance for a conversion to a JSON string.
+     * Does not work with Symbol and BigInt types.
      * You don't need to call this method explicitly.
-     * JSON.stringify() will call it automatically.
-  
+     * JSON.stringify() will call it automatically if you pass a stack instance to it.
      */
     toJSON() {
         if (this.type === Symbol || this.type === BigInt) {
             throw new TypeError("Symbol and BigInt types cannot be serialized to JSON");
         }
-        // We store the data AND the config (capacity/type)
+        // We store the data AND the config (limit/type)
         // so we can restore the rules later.
         return {
-            array: this.toArray(),
-            capacity: this.capacity === Infinity ? null : this.capacity,
-            // Note: We can only serialize the type name if it's a primitive string.
-            // Functions/Classes (like Date) cannot be serialized to JSON easily.
-            type: this.type === null ? null : (getFunctionName(this.type) ?? null),
+            array: this.toArray() ?? null,
+            limit: this.limit === Infinity ? null : (this.limit ?? null),
+            type: this.type ? (getFunctionName(this.type) ?? null) : null,
         };
     }
     /**
@@ -326,22 +351,21 @@ export class Stack {
      *
      */
     static fromJSON(text, options = {}) {
-        if (options.type &&
-            !primitiveConstructors.has(options.type) &&
-            !isConstructor(options.type))
-            throw new TypeError(`Invalid Stack Configuration: 'type' must be a Constructor or Primitive function. Got: ${typeof options.type}`);
-        if (options.inferred && typeof options.inferred !== "boolean")
-            throw new TypeError(`Invalid Stack Configuration: 'inferred' must be a boolean. Got: ${typeof options.inferred}`);
-        if (options.reviver && typeof options.reviver !== "function")
-            throw new TypeError(`Invalid Stack Configuration: 'reviver' must be a function. Got: ${typeof options.reviver}`);
-        if (options.validate && typeof options.validate !== "function")
-            throw new TypeError(`Invalid Stack Configuration: 'validate' must be a function. Got: ${typeof options.validate}`);
+        const { type, validate, inferred, reviver } = options;
+        if (type && !primitiveConstructors.has(type) && !isConstructor(type))
+            throw new TypeError(`Invalid Stack Configuration: 'type' must be a Constructor or Primitive function. Got: ${typeof type}`);
+        if (inferred && typeof inferred !== "boolean")
+            throw new TypeError(`Invalid Stack Configuration: 'inferred' must be a boolean. Got: ${typeof inferred}`);
+        if (reviver && typeof reviver !== "function")
+            throw new TypeError(`Invalid Stack Configuration: 'reviver' must be a function. Got: ${typeof reviver}`);
+        if (validate && typeof validate !== "function")
+            throw new TypeError(`Invalid Stack Configuration: 'validate' must be a function. Got: ${typeof validate}`);
         const data = JSON.parse(text);
         // Resolve the Type
         // If the user passed a type manually, use it.
         // If not, look at the string in JSON and try to convert it.
-        let resolvedType = options.type ?? null;
-        if (!resolvedType && options.inferred && data.type) {
+        let resolvedType = type ?? null;
+        if (!resolvedType && inferred && data.type) {
             if (data.type === "Number") {
                 resolvedType = Number;
             }
@@ -373,9 +397,9 @@ export class Stack {
         }
         // Re-initialize the stack with saved config
         const restored = new Stack({
-            capacity: data.capacity ?? undefined,
+            limit: data.limit ?? undefined,
             type: resolvedType ?? undefined,
-            validate: options.validate ?? undefined,
+            validate: validate ?? undefined,
         });
         // Rebuild the stack
         // The array is [Top, Next, ... Bottom].
@@ -385,8 +409,9 @@ export class Stack {
             const context = data.array;
             for (let i = context.length - 1; i >= 0; i--) {
                 let value = context[i];
-                if (options.reviver)
-                    value = options.reviver.call(context, String(i), value);
+                // Standard JSON Reviver behavior (with 'this' binding)
+                if (reviver)
+                    value = reviver.call(context, String(i), value);
                 else if (typeof resolvedType === "function") {
                     if (resolvedType === BigInt ||
                         resolvedType === Symbol ||
@@ -434,7 +459,7 @@ export class Stack {
 }
 // Usage
 const stack = new Stack({
-    capacity: 3,
+    limit: 3,
     type: String,
     array: ["Apple", "Banana", "Cherry"],
 });
@@ -449,7 +474,7 @@ console.log(stack.toArray());
 // Output: Banana -> Apple -> null
 // 1. Create a Stack for Dates only, max 10 items
 const myStack = new Stack({
-    capacity: 10,
+    limit: 10,
     type: Date,
 });
 // 2. Add items
@@ -460,6 +485,7 @@ const savedData = JSON.stringify(myStack); // This will call toJSON()
 // 4. Load it back (Deserialize with Reviver)
 const restoredStack = Stack.fromJSON(savedData, {
     type: Date,
+    // Example of Reviver function with 'this' usage
     reviver: function (key, val) {
         if (key === "0" && Array.isArray(this)) {
             console.log(this[0]);
@@ -538,14 +564,14 @@ sorted.push(5);
 sorted.push(15);
 sorted.sort((a, b) => b.valueOf() - a.valueOf());
 console.log(sorted.toString());
-const testStack = new Stack({ capacity: 3 });
+const testStack = new Stack({ limit: 3 });
 testStack.push(4);
 testStack.push(4);
 testStack.push("4erjre");
 /* testStack.pop();
 testStack.clear().push(1); */
 console.log(testStack.toString());
-const checkType = new Stack({ type: User, capacity: 3 });
+const checkType = new Stack({ type: User, limit: 3 });
 const jStr = JSON.stringify(checkType);
 const restoredType = Stack.fromJSON(jStr, { inferred: true });
 console.dir(restoredType.type);

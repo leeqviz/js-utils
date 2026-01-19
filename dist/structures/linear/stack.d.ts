@@ -6,13 +6,13 @@ type ValidateFunction<T = unknown> = (value: T) => boolean;
 type StackType<T = unknown> = PrimitiveConstructor | GenericConstructor<T>;
 interface StackOptions<T = unknown> {
     array?: T[];
-    capacity?: number;
+    limit?: number;
     type?: StackType<T>;
     validate?: ValidateFunction;
 }
 interface SerializedStack<T = unknown> {
     array: T[] | null;
-    capacity: number | null;
+    limit: number | null;
     type: string | null;
 }
 interface FromJSONOptions<T = unknown> {
@@ -42,7 +42,7 @@ declare class StackNode<T = unknown> {
 export declare class Stack<T = unknown> {
     head: StackNode<T> | null;
     size: number;
-    readonly capacity: number;
+    readonly limit: number;
     readonly type: StackType<T> | null;
     readonly validate: ValidateFunction | null;
     constructor(options?: StackOptions<T>);
@@ -51,32 +51,26 @@ export declare class Stack<T = unknown> {
      */
     push(data: T): this;
     /**
-     *
      * Remove data from the head
      */
     pop(): T | undefined;
     /**
-     *
      * View the head
      */
     peek(): T | undefined;
     /**
-     *
      * Clear the stack
      */
     clear(): this;
     /**
-     *
      * Get the size of the stack
      */
     getSize(): number;
     /**
-     *
      * Check if the stack is empty
      */
     isEmpty(): boolean;
     /**
-     *
      * Check if the stack is full
      */
     isFull(): boolean;
@@ -84,22 +78,22 @@ export declare class Stack<T = unknown> {
      * Checks if a specific data exists in the stack.
      * Uses strict equality (===).
      *
-     * Time: O(n)
-     * Space: O(1)
+     * Time: O(n);
+     * Space: O(1);
      */
     contains(data: T): boolean;
     /**
      * Finds the first element satisfying a predicate.
      *
-     * Time: O(n)
-     * Space: O(1)
+     * Time: O(n);
+     * Space: O(1);
      */
     find(callback: (data: T) => boolean): T | undefined;
     /**
      * Finds all elements satisfying a predicate.
      *
-     * Time: O(n)
-     * Space: O(n)
+     * Time: O(n);
+     * Space: O(n);
      */
     filter(callback: (data: T) => boolean): T[];
     /**
@@ -116,10 +110,10 @@ export declare class Stack<T = unknown> {
      */
     toArray(): T[];
     /**
-     * Converts the stack to a JSON string.
+     * Prepares the stack instance for a conversion to a JSON string.
+     * Does not work with Symbol and BigInt types.
      * You don't need to call this method explicitly.
-     * JSON.stringify() will call it automatically.
-  
+     * JSON.stringify() will call it automatically if you pass a stack instance to it.
      */
     toJSON(): SerializedStack<T>;
     /**
