@@ -31,6 +31,9 @@ jobs:
       - name: Type Check & Build
         run: npm run build
 
+      - name: List Output Files
+        run: ls -R dist
+
       - name: Run Tests
         # This runs 'node --test' on the compiled output
         run: npm run test

@@ -11,7 +11,7 @@
     "build": "tsc",
     "build:watch": "tsc --watch",
     "start": "tsc && node dist/index.js",
-    "test": "node --test dist/**/*.test.js"
+    "test": "node --test 'dist/**/*.test.js'"
   },
   "keywords": [
     "utils",
