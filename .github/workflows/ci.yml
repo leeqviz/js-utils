@@ -33,4 +33,4 @@ jobs:
 
       - name: Run Tests
         # This runs 'node --test' on the compiled output
-        run: npm test
+        run: npm run test

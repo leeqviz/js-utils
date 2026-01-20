@@ -30,7 +30,7 @@ jobs:
         run: npm run build
 
       - name: Verify Tests
-        run: npm test
+        run: npm run test
 
       - name: Publish to NPM
         run: npm publish --access public
