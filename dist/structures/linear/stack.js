@@ -1,113 +1,4 @@
-const primitiveConstructors = new Set([
-    Number,
-    String,
-    Boolean,
-    BigInt,
-    Symbol,
-]);
-function isConstructor(value) {
-    return (typeof value === "function" &&
-        value.prototype &&
-        value.prototype.constructor &&
-        value.prototype.constructor === value &&
-        value.prototype.constructor.name);
-}
-function getFunctionName(value) {
-    return typeof value === "function" ? value.name : undefined;
-}
-/**
- * Checks if the data can be serialized to JSON.
- * You can use it to validate the data before serializing it.
- *
- * Features:
- * - Checks for circular references
- * - Checks for data loss (Functions, Symbols, Undefined)
- * - Checks for data mutation (NaN, Infinity, Map, Set, WeakMap, WeakSet, Error, RegExp)
- * - Checks for data crash (BigInt)
- * - Checks for primitives (Number, String, Boolean, Null)
- * - Checks for custom toJSON() method
- * - Checks for data that can throw an Error
- * - Checks for proxies objects
- * - Checks for restorable data
- */
-function isSerializable(data, options = {}) {
-    const { isRestorable = false, maxDepth = undefined } = options;
-    if (maxDepth &&
-        (typeof maxDepth !== "number" ||
-            Number.isNaN(maxDepth) ||
-            !Number.isInteger(maxDepth) ||
-            maxDepth < 0))
-        throw new TypeError(`Invalid Stack Configuration: 'maxDepth' must be a positive integer number. Got: ${typeof maxDepth}`);
-    function _validateRecursively(value, seen = new WeakSet(), currentDepth = 0) {
-        if (currentDepth > (maxDepth ?? Infinity))
-            return false;
-        // Check for possible data loss (mutation to 'null' or '{}'): undefined, function, symbol, NaN, +-Infinity, and not serializable instances
-        if (isRestorable) {
-            if (value === undefined ||
-                typeof value === "symbol" ||
-                typeof value === "function" ||
-                value instanceof Error ||
-                value instanceof RegExp ||
-                value instanceof Map ||
-                value instanceof Set ||
-                value instanceof WeakMap ||
-                value instanceof WeakSet ||
-                !Number.isFinite(value))
-                return false;
-        }
-        // Check for possible data crash: BigInt
-        if (typeof value === "bigint")
-            return false;
-        // Check for safe primitive
-        if (value === null || typeof value !== "object")
-            return true;
-        if (isRestorable) {
-            // We only allow Plain Objects and Arrays.
-            // Anything else (Date, RegExp, Custom Class) loses its prototype.
-            const proto = Object.getPrototypeOf(value);
-            if (!Array.isArray(value) && proto !== Object.prototype && proto !== null)
-                return false;
-        }
-        // Check for circular references
-        if (seen.has(value))
-            return false;
-        // Add the current value to the seen set
-        seen.add(value);
-        // Handle the tree of objects and arrays
-        try {
-            // Check for custom .toJSON()
-            if ("toJSON" in value && typeof value.toJSON === "function") {
-                // Recurse on the output of toJSON, not the original object
-                return _validateRecursively(value.toJSON(), seen, currentDepth + 1);
-            }
-            if (Array.isArray(value)) {
-                for (const item of value) {
-                    // Accessing each item in the array
-                    if (!_validateRecursively(item, seen, currentDepth + 1))
-                        return false;
-                }
-            }
-            else {
-                for (const key in value) {
-                    if (Object.hasOwn(value, key)) {
-                        // Accessing a property or method in the object
-                        if (!_validateRecursively(value[key], seen, currentDepth + 1))
-                            return false;
-                    }
-                }
-            }
-        }
-        catch {
-            return false;
-        }
-        finally {
-            // Remove from set so we can use the same object in a different valid branch
-            seen.delete(value);
-        }
-        return true;
-    }
-    return _validateRecursively(data);
-}
+import { getFunctionName, isConstructor, PRIMITIVE_CONSTRUCTORS, } from "../../utils/function.js";
 /**
  * Represents a single node in the stack
  */
@@ -146,11 +37,11 @@ export class Stack {
                 limit < 0))
             throw new TypeError(`Invalid Stack Configuration: 'limit' must be a positive integer number. Got: ${typeof limit}`);
         this.limit = limit ?? Infinity;
-        if (type && !primitiveConstructors.has(type) && !isConstructor(type))
+        if (type && !PRIMITIVE_CONSTRUCTORS.has(type) && !isConstructor(type))
             throw new TypeError(`Invalid Stack Configuration: 'type' must be a constructor or primitive function. Got: ${typeof type}`);
         this.type = type ?? null;
-        if (validate && typeof validate !== "function")
-            throw new TypeError(`Invalid Stack Configuration: 'validate' must be a function. Got: ${typeof validate}`);
+        if (validate && (typeof validate !== "function" || validate.length !== 1))
+            throw new TypeError(`Invalid Stack Configuration: 'validate' must be a function with one argument. Got: ${typeof validate} with ${validate.length} arguments`);
         this.validate = validate ?? null;
         if (array && !Array.isArray(array))
             throw new TypeError(`Invalid Stack Configuration: 'array' must be an array. Got: ${typeof array}`);
@@ -170,9 +61,12 @@ export class Stack {
         // Check correct type
         if (this.type && !this._isValidType(data))
             throw new TypeError(`Expected ${getFunctionName(this.type)} but got ${typeof data}`);
-        // We run this second because it might involve complex logic.
-        if (this.validate && !this.validate(data)) {
-            throw new Error("Validation Failed: Value rejected by custom validation rule.");
+        if (this.validate) {
+            const isValid = this.validate(data);
+            if (typeof isValid !== "boolean")
+                throw new Error(`Validator must return a boolean, returned ${typeof isValid}`);
+            if (!isValid)
+                throw new Error("Validation Failed: Value rejected by custom validation rule.");
         }
         // Create a new node.
         // If stack is not empty, point new node to the current head (place our node at the head and point to previous node)
@@ -406,14 +300,14 @@ export class Stack {
      */
     static fromJSON(text, options = {}) {
         const { type, validate, inferred, reviver } = options;
-        if (type && !primitiveConstructors.has(type) && !isConstructor(type))
+        if (type && !PRIMITIVE_CONSTRUCTORS.has(type) && !isConstructor(type))
             throw new TypeError(`Invalid Stack Configuration: 'type' must be a Constructor or Primitive function. Got: ${typeof type}`);
         if (inferred && typeof inferred !== "boolean")
             throw new TypeError(`Invalid Stack Configuration: 'inferred' must be a boolean. Got: ${typeof inferred}`);
         if (reviver && typeof reviver !== "function")
             throw new TypeError(`Invalid Stack Configuration: 'reviver' must be a function. Got: ${typeof reviver}`);
-        if (validate && typeof validate !== "function")
-            throw new TypeError(`Invalid Stack Configuration: 'validate' must be a function. Got: ${typeof validate}`);
+        if (validate && (typeof validate !== "function" || validate.length !== 1))
+            throw new TypeError(`Invalid Stack Configuration: 'validate' must be a function with one argument. Got: ${typeof validate} with ${validate.length} arguments`);
         const data = JSON.parse(text);
         // Resolve the Type
         // If the user passed a type manually, use it.
@@ -480,7 +374,8 @@ export class Stack {
                         }
                     }
                 }
-                restored.push(value);
+                if (value)
+                    restored.push(value);
             }
         }
         return restored;
@@ -629,15 +524,4 @@ const checkType = new Stack({ type: User, limit: 3 });
 const jStr = JSON.stringify(checkType);
 const restoredType = Stack.fromJSON(jStr, { inferred: true });
 console.dir(restoredType.type);
-const data = {
-    name: "Alice",
-    greet: () => console.log("Hi"), // Function
-    id: Symbol("id"), // Symbol
-    score: undefined, // Undefined
-};
-const arr = ["Alice", () => console.log("Hi"), Symbol("id"), undefined];
-console.log(isSerializable(data, { isRestorable: true }));
-console.log(JSON.stringify(data));
-console.log(isSerializable(arr, { isRestorable: true }));
-console.log(JSON.stringify(arr));
 //# sourceMappingURL=stack.js.map

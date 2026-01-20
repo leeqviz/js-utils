@@ -6,6 +6,7 @@ function incrementString(str: string) {
   }
 
   const lastOne = arr[arr.length - 1];
+  // @ts-ignore
   const newNum = String(Number(lastOne) + 1).padStart(lastOne.length, "0");
   const newStr = str.replace(/\d+$/, "");
   return newStr + newNum;

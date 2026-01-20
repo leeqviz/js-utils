@@ -5,6 +5,7 @@ function narcissistic(value) {
     const digits = value.toString().split("").map(Number);
     let res = 0;
     for (let i = 0; i < digits.length; i++) {
+        // @ts-ignore
         res += Math.pow(digits[i], digits.length);
     }
     return res === value;

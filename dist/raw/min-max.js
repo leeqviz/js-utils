@@ -4,6 +4,7 @@ function findMax(arr) {
     }
     let max = arr[0];
     for (let i = 1; i < arr.length; i++) {
+        // @ts-ignore
         if (arr[i] !== null && typeof arr[i] === "number" && arr[i] > max) {
             max = arr[i];
         }
@@ -16,6 +17,7 @@ function findMin(arr) {
     }
     let min = arr[0];
     for (let i = 1; i < arr.length; i++) {
+        // @ts-ignore
         if (arr[i] !== null && typeof arr[i] === "number" && arr[i] < min) {
             min = arr[i];
         }

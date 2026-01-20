@@ -1,14 +1,11 @@
-type PrimitiveConstructor = NumberConstructor | StringConstructor | BooleanConstructor | BigIntConstructor | SymbolConstructor;
-type GenericConstructor<T = unknown> = {
-    new (...args: any[]): T;
-};
+import { type GenericConstructor, type PrimitiveConstructor } from "../../utils/function.js";
 type ValidateFunction<T = unknown> = (value: T) => boolean;
 type StackType<T = unknown> = PrimitiveConstructor | GenericConstructor<T>;
 interface StackOptions<T = unknown> {
-    array?: T[];
-    limit?: number;
-    type?: StackType<T>;
-    validate?: ValidateFunction;
+    array?: T[] | undefined;
+    limit?: number | undefined;
+    type?: StackType<T> | undefined;
+    validate?: ValidateFunction | undefined;
 }
 interface SerializedStack<T = unknown> {
     array: T[] | null;
@@ -16,10 +13,10 @@ interface SerializedStack<T = unknown> {
     type: string | null;
 }
 interface FromJSONOptions<T = unknown> {
-    inferred?: boolean;
-    reviver?: (this: any, key: string, value: any) => any;
-    type?: StackType<T>;
-    validate?: ValidateFunction;
+    inferred?: boolean | undefined;
+    reviver?: ((this: any, key: string, value: any) => any) | undefined;
+    type?: StackType<T> | undefined;
+    validate?: ValidateFunction | undefined;
 }
 /**
  * Represents a single node in the stack
@@ -132,3 +129,4 @@ export declare class Stack<T = unknown> {
     private _isValidType;
 }
 export {};
+//# sourceMappingURL=stack.d.ts.map
