@@ -15,10 +15,11 @@ describe("Stack Implementation", () => {
   });
 
   it("should be robust", () => {
-    const stack = new Stack();
+    const stack = new Stack({ type: Number });
     // assert.throws checks if function throws error
     assert.throws(() => {
+      // @ts-expect-error Testing runtime safety against strict type
       stack.push(100n);
-    }, /Invalid Type/);
+    }, /Expected/);
   });
 });
