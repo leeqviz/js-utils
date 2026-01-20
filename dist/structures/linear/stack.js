@@ -57,7 +57,7 @@ export class Stack {
     push(data) {
         // Check if stack is full
         if (this.size >= this.limit)
-            throw new RangeError("Maximum call stack size exceeded");
+            throw new RangeError("Stack Overflow: Maximum call stack size exceeded");
         // Check correct type
         if (this.type && !this._isValidType(data))
             throw new TypeError(`Expected ${getFunctionName(this.type)} but got ${typeof data}`);
@@ -406,122 +406,124 @@ export class Stack {
         return false;
     }
 }
-// Usage
-const stack = new Stack({
-    limit: 3,
-    type: String,
-    array: ["Apple", "Banana", "Cherry"],
-});
-/* stack.push("Apple");
-stack.push("Banana");
-stack.push("Cherry"); */
-console.log(stack.toString());
-// Output: Cherry -> Banana -> Apple -> null
-console.log("popping: " + stack.pop()); // Output: "Cherry"
-console.log("picking: " + stack.peek()); // Output: "Banana"
-console.log(stack.toArray());
-// Output: Banana -> Apple -> null
-// 1. Create a Stack for Dates only, max 10 items
-const myStack = new Stack({
-    limit: 10,
-    type: Date,
-});
-// 2. Add items
-myStack.push(new Date("2023-01-01"));
-myStack.push(new Date("2024-01-01"));
-// 3. Save it (Serialize)
-const savedData = JSON.stringify(myStack); // This will call toJSON()
-// 4. Load it back (Deserialize with Reviver)
-const restoredStack = Stack.fromJSON(savedData, {
-    type: Date,
-    // Example of Reviver function with 'this' usage
-    reviver: function (key, val) {
-        if (key === "0" && Array.isArray(this)) {
-            console.log(this[0]);
+export function runExample() {
+    // Usage
+    const stack = new Stack({
+        limit: 3,
+        type: String,
+        array: ["Apple", "Banana", "Cherry"],
+    });
+    /* stack.push("Apple");
+  stack.push("Banana");
+  stack.push("Cherry"); */
+    console.log(stack.toString());
+    // Output: Cherry -> Banana -> Apple -> null
+    console.log("popping: " + stack.pop()); // Output: "Cherry"
+    console.log("picking: " + stack.peek()); // Output: "Banana"
+    console.log(stack.toArray());
+    // Output: Banana -> Apple -> null
+    // 1. Create a Stack for Dates only, max 10 items
+    const myStack = new Stack({
+        limit: 10,
+        type: Date,
+    });
+    // 2. Add items
+    myStack.push(new Date("2023-01-01"));
+    myStack.push(new Date("2024-01-01"));
+    // 3. Save it (Serialize)
+    const savedData = JSON.stringify(myStack); // This will call toJSON()
+    // 4. Load it back (Deserialize with Reviver)
+    const restoredStack = Stack.fromJSON(savedData, {
+        type: Date,
+        // Example of Reviver function with 'this' usage
+        reviver: function (key, val) {
+            if (key === "0" && Array.isArray(this)) {
+                console.log(this[0]);
+            }
+            return new Date(val);
+        },
+    });
+    console.log(restoredStack.type);
+    console.log(restoredStack.peek()?.getFullYear()); // 2024
+    const stackNumber = new Stack({ type: Number });
+    stackNumber.push(10);
+    stackNumber.push(20);
+    stackNumber.push(30);
+    console.log(stackNumber.contains(20)); // true
+    console.log(stackNumber.contains(99)); // false
+    class User {
+        id;
+        name;
+        constructor(id, name) {
+            this.id = id;
+            this.name = name;
         }
-        return new Date(val);
-    },
-});
-console.log(restoredStack.type);
-console.log(restoredStack.peek()?.getFullYear()); // 2024
-const stackNumber = new Stack({ type: Number });
-stackNumber.push(10);
-stackNumber.push(20);
-stackNumber.push(30);
-console.log(stackNumber.contains(20)); // true
-console.log(stackNumber.contains(99)); // false
-class User {
-    id;
-    name;
-    constructor(id, name) {
-        this.id = id;
-        this.name = name;
     }
+    const users = new Stack({ type: User });
+    users.push(new User(1, "Alice"));
+    users.push(new User(2, "Bob"));
+    users.push(new User(3, "Charlie")); // Top
+    // Find the user with ID 2
+    // The search goes: Charlie (id 3) -> Bob (id 2) ✅ Found!
+    const foundUser = users.find((u) => u.id === 2);
+    console.log(foundUser?.name); // "Bob"
+    const evenUsers = users.filter((u) => u.id % 2 === 0);
+    console.log(evenUsers); // [ User(Bob) ]
+    const users1 = new Stack({ type: User });
+    users1.push(new User(3, "Charlie"));
+    users1.push(new User(1, "Alice"));
+    users1.push(new User(2, "Bob"));
+    // Sort by ID (Ascending)
+    // Logic: User 1 will be at Bottom, User 3 will be at Top.
+    users1.sort((u1, u2) => u1.id - u2.id);
+    console.log(users1.peek()?.name); // "Charlie" (ID 3 is Top)
+    const numbers = new Stack({ type: Number });
+    numbers.push(10);
+    numbers.push(50);
+    numbers.push(5);
+    // SCENARIO A: Ascending Sort (Smallest -> Largest)
+    // Array becomes: [5, 10, 50]
+    // Stack becomes: Bottom [5] -> [10] -> [50] Top
+    numbers.sort((a, b) => {
+        if (a > b)
+            return 1; // a > b, swap
+        if (a < b)
+            return -1; // a < b, don't swap
+        return 0;
+    });
+    console.log(numbers.pop()); // 50 (Largest is at Top)
+    console.log(numbers.pop()); // 10
+    console.log(numbers.pop()); // 5
+    // SCENARIO B: Descending Sort (Largest -> Smallest)
+    // Array becomes: [50, 10, 5]
+    // Stack becomes: Bottom [50] -> [10] -> [5] Top
+    numbers.push(10);
+    numbers.push(50);
+    numbers.push(5); // Reset
+    numbers.sort((a, b) => {
+        if (a > b)
+            return 1; // a > b, swap
+        if (a < b)
+            return -1; // a < b, don't swap
+        return 0;
+    });
+    console.log(numbers.pop()); // 5 (Smallest is at Top)
+    const sorted = new Stack({ type: Number });
+    sorted.push(10);
+    sorted.push(5);
+    sorted.push(15);
+    sorted.sort((a, b) => b.valueOf() - a.valueOf());
+    console.log(sorted.toString());
+    const testStack = new Stack({ limit: 3 });
+    testStack.push(4);
+    testStack.push(4);
+    testStack.push("4erjre");
+    /* testStack.pop();
+  testStack.clear().push(1); */
+    console.log(testStack.toString());
+    const checkType = new Stack({ type: User, limit: 3 });
+    const jStr = JSON.stringify(checkType);
+    const restoredType = Stack.fromJSON(jStr, { inferred: true });
+    console.dir(restoredType.type);
 }
-const users = new Stack({ type: User });
-users.push(new User(1, "Alice"));
-users.push(new User(2, "Bob"));
-users.push(new User(3, "Charlie")); // Top
-// Find the user with ID 2
-// The search goes: Charlie (id 3) -> Bob (id 2) ✅ Found!
-const foundUser = users.find((u) => u.id === 2);
-console.log(foundUser?.name); // "Bob"
-const evenUsers = users.filter((u) => u.id % 2 === 0);
-console.log(evenUsers); // [ User(Bob) ]
-const users1 = new Stack({ type: User });
-users1.push(new User(3, "Charlie"));
-users1.push(new User(1, "Alice"));
-users1.push(new User(2, "Bob"));
-// Sort by ID (Ascending)
-// Logic: User 1 will be at Bottom, User 3 will be at Top.
-users1.sort((u1, u2) => u1.id - u2.id);
-console.log(users1.peek()?.name); // "Charlie" (ID 3 is Top)
-const numbers = new Stack({ type: Number });
-numbers.push(10);
-numbers.push(50);
-numbers.push(5);
-// SCENARIO A: Ascending Sort (Smallest -> Largest)
-// Array becomes: [5, 10, 50]
-// Stack becomes: Bottom [5] -> [10] -> [50] Top
-numbers.sort((a, b) => {
-    if (a > b)
-        return 1; // a > b, swap
-    if (a < b)
-        return -1; // a < b, don't swap
-    return 0;
-});
-console.log(numbers.pop()); // 50 (Largest is at Top)
-console.log(numbers.pop()); // 10
-console.log(numbers.pop()); // 5
-// SCENARIO B: Descending Sort (Largest -> Smallest)
-// Array becomes: [50, 10, 5]
-// Stack becomes: Bottom [50] -> [10] -> [5] Top
-numbers.push(10);
-numbers.push(50);
-numbers.push(5); // Reset
-numbers.sort((a, b) => {
-    if (a > b)
-        return 1; // a > b, swap
-    if (a < b)
-        return -1; // a < b, don't swap
-    return 0;
-});
-console.log(numbers.pop()); // 5 (Smallest is at Top)
-const sorted = new Stack({ type: Number });
-sorted.push(10);
-sorted.push(5);
-sorted.push(15);
-sorted.sort((a, b) => b.valueOf() - a.valueOf());
-console.log(sorted.toString());
-const testStack = new Stack({ limit: 3 });
-testStack.push(4);
-testStack.push(4);
-testStack.push("4erjre");
-/* testStack.pop();
-testStack.clear().push(1); */
-console.log(testStack.toString());
-const checkType = new Stack({ type: User, limit: 3 });
-const jStr = JSON.stringify(checkType);
-const restoredType = Stack.fromJSON(jStr, { inferred: true });
-console.dir(restoredType.type);
 //# sourceMappingURL=stack.js.map

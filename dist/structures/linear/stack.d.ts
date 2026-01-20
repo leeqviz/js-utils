@@ -1,22 +1,21 @@
 import { type GenericConstructor, type PrimitiveConstructor } from "../../utils/function.js";
-type ValidateFunction<T = unknown> = (value: T) => boolean;
 type StackType<T = unknown> = PrimitiveConstructor | GenericConstructor<T>;
 interface StackOptions<T = unknown> {
     array?: T[] | undefined;
     limit?: number | undefined;
     type?: StackType<T> | undefined;
-    validate?: ValidateFunction | undefined;
+    validate?: ((value: T) => boolean) | undefined;
 }
 interface SerializedStack<T = unknown> {
     array: T[] | null;
     limit: number | null;
     type: string | null;
 }
-interface FromJSONOptions<T = unknown> {
+interface StackFromJSONOptions<T = unknown> {
     inferred?: boolean | undefined;
     reviver?: ((this: any, key: string, value: any) => any) | undefined;
     type?: StackType<T> | undefined;
-    validate?: ValidateFunction | undefined;
+    validate?: ((value: T) => boolean) | undefined;
 }
 /**
  * Represents a single node in the stack
@@ -41,7 +40,7 @@ export declare class Stack<T = unknown> {
     size: number;
     readonly limit: number;
     readonly type: StackType<T> | null;
-    readonly validate: ValidateFunction | null;
+    readonly validate: ((value: T) => boolean) | null;
     constructor(options?: StackOptions<T>);
     /**
      * Add data to the head
@@ -120,7 +119,7 @@ export declare class Stack<T = unknown> {
      * Use an 'inferred' option as a last resort to let the function try to infer the type.
      *
      */
-    static fromJSON<U = unknown>(text: string, options?: FromJSONOptions<U>): Stack<U>;
+    static fromJSON<U = unknown>(text: string, options?: StackFromJSONOptions<U>): Stack<U>;
     /**
      * Checks if the type of the data matches the type of the stack.
      *
@@ -128,5 +127,6 @@ export declare class Stack<T = unknown> {
      */
     private _isValidType;
 }
+export declare function runExample(): void;
 export {};
 //# sourceMappingURL=stack.d.ts.map
