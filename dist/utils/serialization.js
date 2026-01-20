@@ -91,15 +91,17 @@ export function isSerializable(data, options = {}) {
     }
     return _validate(data);
 }
-const data = {
-    name: "Alice",
-    greet: () => console.log("Hi"), // Function
-    id: Symbol("id"), // Symbol
-    score: undefined, // Undefined
-};
-const arr = ["Alice", () => console.log("Hi"), Symbol("id"), undefined];
-console.log(isSerializable(data, { isRestorable: true }));
-console.log(JSON.stringify(data));
-console.log(isSerializable(arr, { isRestorable: true }));
-console.log(JSON.stringify(arr));
+export function runExample() {
+    const data = {
+        name: "Alice",
+        greet: () => console.log("Hi"), // Function
+        id: Symbol("id"), // Symbol
+        score: undefined, // Undefined
+    };
+    const arr = ["Alice", () => console.log("Hi"), Symbol("id"), undefined];
+    console.log(isSerializable(data, { isRestorable: true }));
+    console.log(JSON.stringify(data));
+    console.log(isSerializable(arr, { isRestorable: true }));
+    console.log(JSON.stringify(arr));
+}
 //# sourceMappingURL=serialization.js.map

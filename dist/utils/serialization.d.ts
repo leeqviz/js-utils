@@ -18,5 +18,6 @@ interface IsSerializableOptions {
  * - Checks for restorable data
  */
 export declare function isSerializable<T = unknown>(data: T, options?: IsSerializableOptions): boolean;
+export declare function runExample(): void;
 export {};
 //# sourceMappingURL=serialization.d.ts.map
