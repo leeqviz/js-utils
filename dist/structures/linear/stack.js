@@ -1,12 +1,12 @@
 import { getFunctionName, isConstructor, PRIMITIVE_CONSTRUCTORS, } from "../../utils/function.js";
+import { LinearStructure, LinearStructureNode, } from "./liner-structure.js";
 /**
  * Represents a single node in the stack
  */
-class StackNode {
+class StackNode extends LinearStructureNode {
     prev = null; // Pointer to the node below this one
-    data; // Data stored in this node
     constructor(data, prev = null) {
-        this.data = data;
+        super(data);
         this.prev = prev;
     }
 }
@@ -20,31 +20,12 @@ class StackNode {
  * - Merge Sort algorithm for sorting
  *
  */
-export class Stack {
+export class Stack extends LinearStructure {
     head = null;
-    size = 0;
-    limit = Infinity;
-    type = null;
-    validate = null;
     constructor(options = {}) {
+        super(options);
         this.head = null;
-        this.size = 0;
-        const { limit, type, array, validate } = options;
-        if (limit &&
-            (typeof limit !== "number" ||
-                Number.isNaN(limit) ||
-                !Number.isInteger(limit) ||
-                limit < 0))
-            throw new TypeError(`Invalid Stack Configuration: 'limit' must be a positive integer number. Got: ${typeof limit}`);
-        this.limit = limit ?? Infinity;
-        if (type && !PRIMITIVE_CONSTRUCTORS.has(type) && !isConstructor(type))
-            throw new TypeError(`Invalid Stack Configuration: 'type' must be a constructor or primitive function. Got: ${typeof type}`);
-        this.type = type ?? null;
-        if (validate && (typeof validate !== "function" || validate.length !== 1))
-            throw new TypeError(`Invalid Stack Configuration: 'validate' must be a function with one argument. Got: ${typeof validate} with ${validate.length} arguments`);
-        this.validate = validate ?? null;
-        if (array && !Array.isArray(array))
-            throw new TypeError(`Invalid Stack Configuration: 'array' must be an array. Got: ${typeof array}`);
+        const { array } = options;
         if (array && Array.isArray(array)) {
             for (const item of array) {
                 this.push(item);
@@ -69,9 +50,11 @@ export class Stack {
                 throw new Error("Validation Failed: Value rejected by custom validation rule.");
         }
         // Create a new node.
-        // If stack is not empty, point new node to the current head (place our node at the head and point to previous node)
-        // Update the head to be the new node
-        this.head = new StackNode(data, this.head);
+        const node = new StackNode(data);
+        // If stack is not empty, point new node to the current head
+        // Place our node at the head and point to previous node
+        node.prev = this.head;
+        this.head = node; // New node always becomes the head
         this.size++;
         // Allow chaining
         return this;
@@ -81,24 +64,21 @@ export class Stack {
      */
     pop() {
         // Stack Underflow case check
-        if (this.head === null || this.size === 0)
+        if (!this.head)
             return undefined;
         // Store current head to return later
         const head = this.head;
         // Move head pointer down to the prev node
         this.head = this.head.prev;
         this.size--;
-        // Free the link to allow GC to clean it up (Optional)
-        head.prev = null;
+        head.prev = null; // Free the link to allow GC to clean it up (Optional)
         return head.data;
     }
     /**
      * View the head
      */
     peek() {
-        if (this.head === null || this.size === 0)
-            return undefined;
-        return this.head.data;
+        return this.head?.data;
     }
     /**
      * Clear the stack
@@ -109,22 +89,10 @@ export class Stack {
         return this;
     }
     /**
-     * Get the size of the stack
-     */
-    getSize() {
-        return this.size;
-    }
-    /**
      * Check if the stack is empty
      */
     isEmpty() {
-        return this.head === null || this.size === 0;
-    }
-    /**
-     * Check if the stack is full
-     */
-    isFull() {
-        return this.size >= this.limit;
+        return !this.head;
     }
     /**
      * Checks if a specific data exists in the stack.
@@ -191,7 +159,7 @@ export class Stack {
      * Rebuilds the stack so that the *last* item in the sorted order ends up at the *Top*.
      */
     sort(compare) {
-        if (this.head === null || this.size === 0)
+        if (!this.head)
             return this;
         function _compare(first, second) {
             if (first < second)
@@ -380,31 +348,6 @@ export class Stack {
         }
         return restored;
     }
-    /**
-     * Checks if the type of the data matches the type of the stack.
-     *
-     * Allow primitives and Classes/Instances
-     */
-    _isValidType(data) {
-        // Case A: No type
-        if (this.type === null)
-            return true;
-        // Case B: Primitive check
-        if (this.type === Number)
-            return typeof data === "number";
-        if (this.type === String)
-            return typeof data === "string";
-        if (this.type === Boolean)
-            return typeof data === "boolean";
-        if (this.type === BigInt)
-            return typeof data === "bigint";
-        if (this.type === Symbol)
-            return typeof data === "symbol";
-        // Case C: Class/Instance check (passed as Constructor, e.g., Date)
-        if (isConstructor(this.type))
-            return data instanceof this.type;
-        return false;
-    }
 }
 export function runExample() {
     // Usage
@@ -443,7 +386,6 @@ export function runExample() {
             return new Date(val);
         },
     });
-    console.log(restoredStack.type);
     console.log(restoredStack.peek()?.getFullYear()); // 2024
     const stackNumber = new Stack({ type: Number });
     stackNumber.push(10);
@@ -524,6 +466,5 @@ export function runExample() {
     const checkType = new Stack({ type: User, limit: 3 });
     const jStr = JSON.stringify(checkType);
     const restoredType = Stack.fromJSON(jStr, { inferred: true });
-    console.dir(restoredType.type);
 }
 //# sourceMappingURL=stack.js.map

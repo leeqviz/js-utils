@@ -3,39 +3,28 @@ import {
   isConstructor,
   PRIMITIVE_CONSTRUCTORS,
   type GenericConstructor,
-  type PrimitiveConstructor,
 } from "../../utils/function.js";
+import {
+  LinearStructure,
+  LinearStructureNode,
+  type LinearStructureFromJSONOptions,
+  type LinearStructureOptions,
+  type SerializedLinearStructure,
+} from "./liner-structure.js";
 
-type StackType<T = unknown> = PrimitiveConstructor | GenericConstructor<T>;
-
-interface StackOptions<T = unknown> {
-  array?: T[] | undefined;
-  limit?: number | undefined;
-  type?: StackType<T> | undefined;
-  validate?: ((value: T) => boolean) | undefined;
-}
-
-interface SerializedStack<T = unknown> {
-  array: T[] | null;
-  limit: number | null;
-  type: string | null;
-}
-
-interface StackFromJSONOptions<T = unknown> {
-  inferred?: boolean | undefined;
-  reviver?: ((this: any, key: string, value: any) => any) | undefined;
-  type?: StackType<T> | undefined;
-  validate?: ((value: T) => boolean) | undefined;
-}
+interface StackOptions<T = unknown> extends LinearStructureOptions<T> {}
+interface SerializedStack<T = unknown> extends SerializedLinearStructure<T> {}
+interface StackFromJSONOptions<
+  T = unknown,
+> extends LinearStructureFromJSONOptions<T> {}
 
 /**
  * Represents a single node in the stack
  */
-class StackNode<T = unknown> {
+class StackNode<T = unknown> extends LinearStructureNode<T> {
   public prev: StackNode<T> | null = null; // Pointer to the node below this one
-  public data: T; // Data stored in this node
   constructor(data: T, prev: StackNode<T> | null = null) {
-    this.data = data;
+    super(data);
     this.prev = prev;
   }
 }
@@ -50,45 +39,13 @@ class StackNode<T = unknown> {
  * - Merge Sort algorithm for sorting
  *
  */
-export class Stack<T = unknown> {
-  public head: StackNode<T> | null = null;
-  public size: number = 0;
-  public readonly limit: number = Infinity;
-  public readonly type: StackType<T> | null = null;
-  public readonly validate: ((value: T) => boolean) | null = null;
+export class Stack<T = unknown> extends LinearStructure<T> {
+  private head: StackNode<T> | null = null;
   constructor(options: StackOptions<T> = {}) {
+    super(options);
     this.head = null;
-    this.size = 0;
-    const { limit, type, array, validate } = options;
+    const { array } = options;
 
-    if (
-      limit &&
-      (typeof limit !== "number" ||
-        Number.isNaN(limit) ||
-        !Number.isInteger(limit) ||
-        limit < 0)
-    )
-      throw new TypeError(
-        `Invalid Stack Configuration: 'limit' must be a positive integer number. Got: ${typeof limit}`,
-      );
-    this.limit = limit ?? Infinity;
-
-    if (type && !PRIMITIVE_CONSTRUCTORS.has(type) && !isConstructor(type))
-      throw new TypeError(
-        `Invalid Stack Configuration: 'type' must be a constructor or primitive function. Got: ${typeof type}`,
-      );
-    this.type = type ?? null;
-
-    if (validate && (typeof validate !== "function" || validate.length !== 1))
-      throw new TypeError(
-        `Invalid Stack Configuration: 'validate' must be a function with one argument. Got: ${typeof validate} with ${validate.length} arguments`,
-      );
-    this.validate = validate ?? null;
-
-    if (array && !Array.isArray(array))
-      throw new TypeError(
-        `Invalid Stack Configuration: 'array' must be an array. Got: ${typeof array}`,
-      );
     if (array && Array.isArray(array)) {
       for (const item of array) {
         this.push(item);
@@ -125,9 +82,13 @@ export class Stack<T = unknown> {
     }
 
     // Create a new node.
-    // If stack is not empty, point new node to the current head (place our node at the head and point to previous node)
-    // Update the head to be the new node
-    this.head = new StackNode(data, this.head);
+    const node = new StackNode(data);
+
+    // If stack is not empty, point new node to the current head
+    // Place our node at the head and point to previous node
+    node.prev = this.head;
+
+    this.head = node; // New node always becomes the head
     this.size++;
 
     // Allow chaining
@@ -139,7 +100,7 @@ export class Stack<T = unknown> {
    */
   public pop(): T | undefined {
     // Stack Underflow case check
-    if (this.head === null || this.size === 0) return undefined;
+    if (!this.head) return undefined;
 
     // Store current head to return later
     const head = this.head;
@@ -148,48 +109,32 @@ export class Stack<T = unknown> {
     this.head = this.head.prev;
     this.size--;
 
-    // Free the link to allow GC to clean it up (Optional)
-    head.prev = null;
+    head.prev = null; // Free the link to allow GC to clean it up (Optional)
+
     return head.data;
   }
 
   /**
    * View the head
    */
-  public peek(): T | undefined {
-    if (this.head === null || this.size === 0) return undefined;
-
-    return this.head.data;
+  override peek(): T | undefined {
+    return this.head?.data;
   }
 
   /**
    * Clear the stack
    */
-  public clear(): this {
+  override clear(): this {
     this.head = null;
     this.size = 0;
     return this;
   }
 
   /**
-   * Get the size of the stack
-   */
-  public getSize(): number {
-    return this.size;
-  }
-
-  /**
    * Check if the stack is empty
    */
-  public isEmpty(): boolean {
-    return this.head === null || this.size === 0;
-  }
-
-  /**
-   * Check if the stack is full
-   */
-  public isFull(): boolean {
-    return this.size >= this.limit;
+  override isEmpty(): boolean {
+    return !this.head;
   }
 
   /**
@@ -266,7 +211,7 @@ export class Stack<T = unknown> {
    * Rebuilds the stack so that the *last* item in the sorted order ends up at the *Top*.
    */
   public sort(compare?: (first: T, second: T) => number): this {
-    if (this.head === null || this.size === 0) return this;
+    if (!this.head) return this;
 
     function _compare(first: T, second: T) {
       if (first < second) return -1;
@@ -340,7 +285,7 @@ export class Stack<T = unknown> {
     return slow;
   }
 
-  public toString(): string {
+  override toString(): string {
     let result = "";
     let current = this.head;
     let counter = this.size - 1;
@@ -355,7 +300,7 @@ export class Stack<T = unknown> {
   /**
    * Converts the Linked List to a standard Array
    */
-  public toArray(): T[] {
+  override toArray(): T[] {
     const result = [];
     let current = this.head;
     while (current) {
@@ -371,7 +316,7 @@ export class Stack<T = unknown> {
    * You don't need to call this method explicitly.
    * JSON.stringify() will call it automatically if you pass a stack instance to it.
    */
-  public toJSON(): SerializedStack<T> {
+  override toJSON(): SerializedStack<T> {
     if (this.type === Symbol || this.type === BigInt) {
       throw new TypeError(
         "Symbol and BigInt types cannot be serialized to JSON",
@@ -490,28 +435,6 @@ export class Stack<T = unknown> {
 
     return restored;
   }
-
-  /**
-   * Checks if the type of the data matches the type of the stack.
-   *
-   * Allow primitives and Classes/Instances
-   */
-  private _isValidType(data: T): boolean {
-    // Case A: No type
-    if (this.type === null) return true;
-
-    // Case B: Primitive check
-    if (this.type === Number) return typeof data === "number";
-    if (this.type === String) return typeof data === "string";
-    if (this.type === Boolean) return typeof data === "boolean";
-    if (this.type === BigInt) return typeof data === "bigint";
-    if (this.type === Symbol) return typeof data === "symbol";
-
-    // Case C: Class/Instance check (passed as Constructor, e.g., Date)
-    if (isConstructor(this.type)) return data instanceof this.type;
-
-    return false;
-  }
 }
 
 export function runExample() {
@@ -559,8 +482,6 @@ stack.push("Cherry"); */
       return new Date(val);
     },
   });
-
-  console.log(restoredStack.type);
 
   console.log(restoredStack.peek()?.getFullYear()); // 2024
 
@@ -661,6 +582,4 @@ testStack.clear().push(1); */
   const checkType = new Stack({ type: User, limit: 3 });
   const jStr = JSON.stringify(checkType);
   const restoredType = Stack.fromJSON(jStr, { inferred: true });
-
-  console.dir(restoredType.type);
 }
