@@ -15,39 +15,112 @@ const names = ["alice", "bob"];
 const uppercase = names.myMap((name) => name.toUpperCase());
 console.log(uppercase); // ['ALICE', 'BOB']
 
-/**
- * Flattens a nested object into a single level.
- * @param {Object} obj - The object to flatten.
- * @param {string} prefix - Internal use for tracking keys during recursion.
- * @param {string} separator - The character used to join keys.
- */
-function flattenObject(obj, prefix = "", separator = ".") {
-  return Object.keys(obj).reduce((acc, key) => {
-    const newKey = prefix ? `${prefix}${separator}${key}` : key;
-    const value = obj[key];
+function flattenObject(obj, prefix = "", result = {}) {
+  // Проходимся по всем ключам текущего уровня объекта
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const value = obj[key];
 
-    // Check if value is a plain object (not null and not an array)
-    if (value !== null && typeof value === "object" && !Array.isArray(value)) {
-      Object.assign(acc, flattenObject(value, newKey, separator));
-    } else {
-      acc[newKey] = value;
+      // Формируем новый ключ.
+      // Если есть префикс (мы внутри вложенности), добавляем точку: "user.address.city"
+      // Если префикса нет (верхний уровень), берем просто ключ: "user"
+      const newKey = prefix ? `${prefix}.${key}` : key;
+
+      // ПРОВЕРКА: Нужно ли нырять глубже?
+      // Мы идем в рекурсию, если значение — это объект,
+      // но не null (т.к. typeof null === 'object') и не массив (опционально)
+      if (value && typeof value === "object" && !Array.isArray(value)) {
+        // РЕКУРСИВНЫЙ ВЫЗОВ
+        // Передаем текущее значение и накопленный ключ (newKey) как префикс
+        flattenObject(value, newKey, result);
+      } else {
+        // БАЗОВЫЙ СЛУЧАЙ (Лист дерева)
+        // Если это примитив (число, строка) или массив — записываем в результат
+        result[newKey] = value;
+      }
     }
-
-    return acc;
-  }, {});
+  }
+  return result;
 }
 
 // Example Usage:
-const nested = {
-  id: 1,
-  info: {
-    name: "John",
-    address: { city: "New York", zip: 10001 },
+const nestedData = {
+  user: {
+    id: 1,
+    profile: {
+      name: "Alex",
+      contacts: {
+        email: "alex@example.com",
+      },
+    },
   },
+  active: true,
 };
 
-const flat = flattenObject(nested);
-// Result: { "id": 1, "info.name": "John", "info.address.city": "New York", "info.address.zip": 10001 }
+console.log(flattenObject(nestedData));
+/* Результат:
+{
+  "user.id": 1,
+  "user.profile.name": "Alex",
+  "user.profile.contacts.email": "alex@example.com",
+  "active": true
+}
+*/
+
+function unflattenObject(data) {
+  const result = {};
+
+  for (const key in data) {
+    if (Object.prototype.hasOwnProperty.call(data, key)) {
+      // 1. Разбиваем длинный ключ на части: "user.profile.name" -> ["user", "profile", "name"]
+      const parts = key.split(".");
+
+      // 2. Создаем "курсор", который будет бегать вглубь объекта.
+      // Изначально он указывает на корень (result).
+      let current = result;
+
+      // 3. Бежим по частям пути, КРОМЕ последней
+      for (let i = 0; i < parts.length - 1; i++) {
+        const part = parts[i];
+
+        // Если по этому пути еще нет объекта — создаем пустой {}
+        if (!current[part]) {
+          current[part] = {};
+        }
+
+        // ДВИГАЕМ КУРСОР ВГЛУБЬ
+        // Теперь current ссылается на вложенный объект
+        current = current[part];
+      }
+
+      // 4. Последняя часть пути — это наш целевой ключ, куда пишем значение
+      const lastPart = parts[parts.length - 1];
+      current[lastPart] = data[key];
+    }
+  }
+
+  return result;
+}
+
+// --- Тестируем ---
+const flatData = {
+  "user.id": 1,
+  "user.profile.name": "Alex",
+  active: true,
+};
+
+console.log(unflattenObject(flatData));
+/* Результат:
+{
+  user: {
+    id: 1,
+    profile: {
+      name: "Alex"
+    }
+  },
+  active: true
+} 
+*/
 
 function deepFreeze(object) {
   const propertyNames = Object.getOwnPropertyNames(object);

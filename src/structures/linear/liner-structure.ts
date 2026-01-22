@@ -32,6 +32,8 @@ export abstract class LinearStructureNode<T = unknown> {
   }
 }
 
+// TODO: Use super.something() in Descendants to avoid code duplication in methods which was overridden
+
 export abstract class LinearStructure<T = unknown> {
   // Shared Configuration
   protected size: number = 0;
