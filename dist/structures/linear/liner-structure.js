@@ -5,6 +5,7 @@ export class LinearStructureNode {
         this.data = data;
     }
 }
+// TODO: Use super.something() in Descendants to avoid code duplication in methods which was overridden
 export class LinearStructure {
     // Shared Configuration
     size = 0;

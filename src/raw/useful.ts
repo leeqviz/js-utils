@@ -148,4 +148,4 @@ const subtract10 = (x) => x - 10;
 const composedFunction = compose(subtract10, multiplyBy3, add5);
 const result = composedFunction(7);
 
-console.log(result); // Output: 36
+console.log(result); // Output: 26
