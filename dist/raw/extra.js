@@ -215,5 +215,28 @@ const data = [1, 2, 3, 4, 5, 6, 7, 8];
 console.log(chunkArray(data, 3));
 // Output: [[1, 2, 3], [4, 5, 6], [7, 8]]
 const chunkArrayV2 = (arr, size) => Array.from({ length: Math.ceil(arr.length / size) }, (_, i) => arr.slice(i * size, i * size + size));
+function deepMerge(obj1, obj2) {
+    const result = structuredClone(obj1);
+    for (const key in obj2) {
+        const v1 = result[key];
+        const v2 = obj2[key];
+        if (v1 !== null &&
+            typeof v1 === "object" &&
+            !Array.isArray(v1) &&
+            v2 !== null &&
+            typeof v2 === "object" &&
+            !Array.isArray(v2)) {
+            result[key] = deepMerge(v1, v2);
+        }
+        else if (Array.isArray(v1) && Array.isArray(v2)) {
+            result[key] = [...v1, ...v2];
+        }
+        else {
+            result[key] = v2 !== undefined ? structuredClone(v2) : undefined;
+        }
+    }
+    return result;
+}
+console.log(deepMerge({ a: { b: 1 }, c: 3 }, { a: { b: 2 }, d: [4] }));
 export {};
 //# sourceMappingURL=extra.js.map
