@@ -275,3 +275,32 @@ function deepMerge(obj1, obj2) {
 }
 
 console.log(deepMerge({ a: { b: 1 }, c: 3 }, { a: { b: 2 }, d: [4] }));
+
+function deepMergeV2(target, source) {
+  // 1. Handle non-objects or nulls
+  if (
+    typeof target !== "object" ||
+    target === null ||
+    typeof source !== "object" ||
+    source === null
+  ) {
+    return source;
+  }
+
+  // 2. Handle Arrays (Concatenate)
+  if (Array.isArray(target) && Array.isArray(source)) {
+    // Concatenate and use structuredClone to ensure a deep copy
+    return structuredClone([...target, ...source]);
+  }
+
+  // 3. Handle Objects (Recursive merge)
+  const result = structuredClone(target);
+  for (const key in source) {
+    if (Object.prototype.hasOwnProperty.call(source, key)) {
+      result[key] = deepMergeV2(target[key], source[key]);
+    }
+  }
+  return result;
+}
+
+console.log(deepMergeV2({ a: { b: 1 }, c: 3 }, { a: { b: 2 }, d: [4] }));
