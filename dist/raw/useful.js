@@ -1,4 +1,23 @@
 // @ts-nocheck
+Array.prototype.myGroupBy = function (callback) {
+    const result = {};
+    for (let i = 0; i < this.length; i++) {
+        const key = callback(this[i], i, this);
+        if (!result[key]) {
+            result[key] = [];
+        }
+        result[key].push(this[i]);
+    }
+    return result;
+};
+const inventory = [
+    { name: "apple", type: "fruit" },
+    { name: "carrot", type: "vegetable" },
+    { name: "banana", type: "fruit" },
+    { name: "celery", type: "vegetable" },
+];
+const grouped = inventory.myGroupBy((item) => item.type);
+console.log(grouped);
 Array.prototype.customMap = function (callback) {
     const result = [];
     for (let i = 0; i < this.length; i++) {
