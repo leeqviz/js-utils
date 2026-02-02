@@ -258,3 +258,29 @@ const composedFunction = compose(subtract10, multiplyBy3, add5);
 const result = composedFunction(7);
 
 console.log(result); // Output: 26
+
+function deepClone(obj) {
+  if (obj === null || typeof obj !== "object") return obj;
+
+  if (Array.isArray(obj)) {
+    const newArr = [];
+    for (let i = 0; i < obj.length; i++) {
+      if (i in obj) {
+        newArr[i] = deepClone(obj[i]);
+      } else {
+        newArr.length++;
+      }
+    }
+    return newArr;
+  }
+
+  const newObj = {};
+  for (const key of Object.keys(obj)) {
+    newObj[key] = deepClone(obj[key]);
+  }
+  return newObj;
+}
+
+const originalObj = { a: 1, b: { c: 2, d: [3, , , 4] } };
+const clonedObj = deepClone(originalObj);
+console.log(clonedObj);
