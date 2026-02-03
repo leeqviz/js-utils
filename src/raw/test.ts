@@ -16,19 +16,20 @@ Promise.race() — для контроля лимита одновременны
  * Выполняет запрос с таймаутом и ретраями
  */
 async function fetchWithTimeout(url, retries, timeoutMs) {
-  for (let attempt = 0; attempt <= retries; attempt++) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
+      // Выполняем запрос
       const response = await fetch(url, { signal: controller.signal });
-      clearTimeout(id);
+      clearTimeout(id); // Отменяем абортирование по завершении запроса
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      return await response.json();
+      return await response.json(); // Возвращаем результат и выходим из цикла попыток
     } catch (err) {
-      clearTimeout(id);
-      const isLastAttempt = attempt === retries;
-      if (isLastAttempt) {
+      clearTimeout(id); // Отменяем абортирование по ошибке
+      if (attempt === retries) {
+        //Попытки закончились
         return {
           error: err.name === "AbortError" ? "Timeout" : err.message,
           url,
@@ -49,7 +50,8 @@ async function poolRequests(urls, limit, retries, timeoutMs) {
   for (const url of urls) {
     // Создаем промис для текущего URL
     const p = fetchWithTimeout(url, retries, timeoutMs).then((res) => {
-      results.push(res);
+      results.push(res); // Сохраняем результат
+      console.log("result", res);
       executing.delete(p); // Удаляем себя из сета по завершении
     });
 
@@ -57,12 +59,14 @@ async function poolRequests(urls, limit, retries, timeoutMs) {
 
     // Если достигли лимита N, ждем, пока любой из запросов завершится
     if (executing.size >= limit) {
+      console.log("limit executing", executing);
       await Promise.race(executing);
     }
   }
 
   // Ждем завершения последних оставшихся запросов
-  await Promise.all(executing);
+  console.log("rest executing", executing);
+  await Promise.allSettled(executing);
   return results;
 }
 
@@ -86,7 +90,7 @@ const urls = Array.from(
 
 // Одновременно 5 запросов, по 3 попытки на каждый, таймаут 2 секунды
 poolRequests(urls, 5, 3, 2000).then((allData) => {
-  console.log("Все запросы обработаны:", allData);
+  console.log("Все запросы обработаны:", allData.length);
 });
 
 /**
