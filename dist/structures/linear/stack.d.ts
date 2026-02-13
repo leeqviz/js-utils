@@ -1,29 +1,9 @@
-import { type GenericConstructor, type PrimitiveConstructor } from "../../utils/function.js";
-type StackType<T = unknown> = PrimitiveConstructor | GenericConstructor<T>;
-interface StackOptions<T = unknown> {
-    array?: T[] | undefined;
-    limit?: number | undefined;
-    type?: StackType<T> | undefined;
-    validate?: ((value: T) => boolean) | undefined;
+import { LinearStructure, type LinearStructureFromJSONOptions, type LinearStructureOptions, type SerializedLinearStructure } from "./liner-structure.js";
+interface StackOptions<T = unknown> extends LinearStructureOptions<T> {
 }
-interface SerializedStack<T = unknown> {
-    array: T[] | null;
-    limit: number | null;
-    type: string | null;
+interface SerializedStack<T = unknown> extends SerializedLinearStructure<T> {
 }
-interface StackFromJSONOptions<T = unknown> {
-    inferred?: boolean | undefined;
-    reviver?: ((this: any, key: string, value: any) => any) | undefined;
-    type?: StackType<T> | undefined;
-    validate?: ((value: T) => boolean) | undefined;
-}
-/**
- * Represents a single node in the stack
- */
-declare class StackNode<T = unknown> {
-    prev: StackNode<T> | null;
-    data: T;
-    constructor(data: T, prev?: StackNode<T> | null);
+interface StackFromJSONOptions<T = unknown> extends LinearStructureFromJSONOptions<T> {
 }
 /**
  * A LIFO (Last-In, First-Out) data structure implemented using a Linked List.
@@ -35,12 +15,8 @@ declare class StackNode<T = unknown> {
  * - Merge Sort algorithm for sorting
  *
  */
-export declare class Stack<T = unknown> {
-    head: StackNode<T> | null;
-    size: number;
-    readonly limit: number;
-    readonly type: StackType<T> | null;
-    readonly validate: ((value: T) => boolean) | null;
+export declare class Stack<T = unknown> extends LinearStructure<T> {
+    private head;
     constructor(options?: StackOptions<T>);
     /**
      * Add data to the head
@@ -59,17 +35,9 @@ export declare class Stack<T = unknown> {
      */
     clear(): this;
     /**
-     * Get the size of the stack
-     */
-    getSize(): number;
-    /**
      * Check if the stack is empty
      */
     isEmpty(): boolean;
-    /**
-     * Check if the stack is full
-     */
-    isFull(): boolean;
     /**
      * Checks if a specific data exists in the stack.
      * Uses strict equality (===).
@@ -120,12 +88,6 @@ export declare class Stack<T = unknown> {
      *
      */
     static fromJSON<U = unknown>(text: string, options?: StackFromJSONOptions<U>): Stack<U>;
-    /**
-     * Checks if the type of the data matches the type of the stack.
-     *
-     * Allow primitives and Classes/Instances
-     */
-    private _isValidType;
 }
 export declare function runExample(): void;
 export {};

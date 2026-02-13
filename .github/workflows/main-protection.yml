@@ -1,0 +1,23 @@
+name: Main Protection Workflow
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail on Direct Push to Main
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          echo "ОШИБКА: Прямой пуш в ветку main запрещен!"
+          echo "Пожалуйста, создайте отдельную ветку и откройте Pull Request."
+          exit 1
+
+      - name: Standard Checks
+        run: echo "Проверка пройдена. Изменения идут через Pull Request."
