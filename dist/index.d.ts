@@ -1,2 +1,2 @@
-import "./raw/test.js";
+export {};
 //# sourceMappingURL=index.d.ts.map

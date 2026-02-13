@@ -192,8 +192,7 @@ console.log(unflattenObject(flatData));
 }
 */
 function deepFreeze(obj) {
-    if (obj === null || typeof obj !== "object")
-        return obj;
+    Object.freeze(obj);
     for (const key of Object.keys(obj)) {
         if (obj[key] !== null &&
             typeof obj[key] === "object" &&
@@ -201,7 +200,7 @@ function deepFreeze(obj) {
             deepFreeze(obj[key]); // Recursively freeze
         }
     }
-    return Object.freeze(obj);
+    return obj;
 }
 const obj = { a: 1, b: { c: 2 } };
 deepFreeze(obj);

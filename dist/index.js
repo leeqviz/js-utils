@@ -1,6 +1,3 @@
-/* import "./structures/linear/stack.js";
-import "./utils/serialization.js"; */
-//import "./raw/extra.js";
-//import "./raw/useful.js";
-import "./raw/test.js";
+import { runExample } from "./utils/fetching.js";
+runExample();
 //# sourceMappingURL=index.js.map
