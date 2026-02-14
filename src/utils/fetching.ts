@@ -8,6 +8,16 @@ Promise.race() — для контроля лимита одновременны
 Рекурсия или цикл для обработки ретраев.
  */
 
+interface FetchWithRetriesResult {
+  url: string;
+  data?: any | undefined;
+}
+
+interface FetchWithRetriesError {
+  url: string;
+  error?: unknown | undefined;
+}
+
 /**
  * Выполняет запрос с таймаутом и ретраями
  */
@@ -15,29 +25,26 @@ export async function fetchWithRetries(
   url: string,
   retries: number,
   timeoutMs: number,
-) {
+): Promise<FetchWithRetriesResult | FetchWithRetriesError> {
   for (let attempt = 1; attempt <= retries; attempt++) {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const response = await fetch(url, { signal: controller.signal });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      if (!response.ok)
+        throw new Error(`${response.status}: ${response.statusText}`);
       const data = await response.json();
       return { data, url }; // Возвращаем результат и выходим из цикла попыток
     } catch (error) {
-      if (attempt === retries) {
-        //Попытки закончились
-        return {
-          error,
-          url,
-        };
-      }
-      // Можно добавить задержку между попытками: await new Promise(r => setTimeout(r, 1000));
+      if (attempt === retries) return { error, url }; //Попытки закончились
     } finally {
-      clearTimeout(id);
+      clearTimeout(id); // Очистка таймера. Сработает перед любым return
     }
   }
-  return { error: new Error("All retries failed"), url };
+  return {
+    error: new Error(`Request failed after ${retries} attempt(s)`),
+    url,
+  };
 }
 
 /**
